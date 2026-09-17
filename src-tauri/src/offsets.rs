@@ -311,10 +311,11 @@ pub mod item_data {
     pub const FILE_INDEX: usize = 0x28; // dword (dwFileIndex)
     pub const ITEM_LEVEL: usize = 0x2C; // dword (dwItemLevel)
     pub const BODY_LOCATION: usize = 0x44; // byte (equipped body slot)
-    pub const ITEM_LOCATION: usize = 0x45; // byte (inventory/equipment location enum)
+    pub const INV_PAGE: usize = 0x45; // byte (D2ItemInvPage: 0=inventory, 1=equip, 2=trade, 3=cube, 4=stash, 5=belt)
+    pub const ITEM_LOCATION: usize = 0x45; // alias for INV_PAGE
     pub const OWNER_INVENTORY: usize = 0x5C; // dword (owning D2InventoryStrc*)
     pub const NEXT_ITEM: usize = 0x64; // dword (pointer to next item)
-    pub const GAME_LOCATION: usize = 0x68; // byte (inventory=3, cube=6, stash=7)
+    pub const GAME_LOCATION: usize = 0x68; // legacy field
 }
 
 /// `D2InventoryStrc` field offsets. Layout from D2MOO
@@ -324,6 +325,7 @@ pub mod item_data {
 pub mod inventory {
     pub const FIRST_ITEM: usize = 0x0C; // D2UnitStrc* pFirstItem
     pub const GRIDS: usize = 0x14; // D2InventoryGridStrc* pGrids
+    pub const CURSOR_ITEM: usize = 0x20; // D2UnitStrc* pCursorItem (NULL if no item held)
 }
 
 /// `D2InventoryGridStrc` field offsets (sizeof = 0x10). The BodyLoc grid

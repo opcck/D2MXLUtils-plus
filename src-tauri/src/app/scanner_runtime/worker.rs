@@ -384,6 +384,9 @@ pub(super) fn start_scanner_internal(
                     if let Ok(mut hist) = loot_history.write() {
                         hist.clear();
                     }
+                    if let Some(ab) = app_handle.try_state::<crate::auto_belt::AutoBeltState>() {
+                        ab.clear();
+                    }
                     if let Err(e) = app_handle.emit("loot-history-cleared", ()) {
                         log_error(&format!("Failed to emit loot-history-cleared: {}", e));
                     }

@@ -11,7 +11,7 @@ pub use model::{
     AppSettings, DpsMeterSettings, SoundSlot, SoundSource, WidgetPosition, WindowState,
 };
 
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_store::StoreExt;
 
 use crate::logger::{error as log_error, info as log_info};
@@ -63,6 +63,12 @@ pub fn save_settings(app: AppHandle, settings: AppSettings) -> Result<(), String
     store
         .save()
         .map_err(|e| format!("Failed to save settings to disk: {}", e))?;
+
+    if let Some(state) = app.try_state::<crate::auto_belt::AutoBeltState>() {
+        state
+            .enabled
+            .store(settings.auto_belt, std::sync::atomic::Ordering::Relaxed);
+    }
 
     if let Err(e) = app.emit("settings-updated", &settings) {
         log_error(&format!("Failed to emit settings-updated: {}", e));
