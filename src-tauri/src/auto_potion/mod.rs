@@ -72,16 +72,55 @@ impl AutoPotionState {
     }
 }
 
-/// Reads the player's current and maximum HP & Mana directly from the unit's StatList
+/// Reads the player's current and maximum HP & Mana directly using UnitStatsReader (same as Stats tab)
 pub fn read_player_vitals(ctx: &D2Context) -> Option<PlayerVitals> {
     let p_player = match ctx
         .process
         .read_memory::<u32>(ctx.d2_client + d2client::PLAYER_UNIT)
     {
-        Ok(p) if p != 0 => p as usize,
+        Ok(p) if p != 0 => p,
         _ => return None,
     };
 
+    // Use the mature UnitStatsReader which correctly reads composite stats from SL_FULL_PSTAT
+    // and handles ItemStatCost adjustments (same mechanism as the Stats panel)
+    let reader =
+        crate::unit_stats_reader::UnitStatsReader::new(&ctx.process, ctx.d2_common, p_player);
+    let values = match reader.read_bulk(&[6, 7, 8, 9], 0) {
+        Ok(v) => v,
+        Err(_) => {
+            // Fallback: read directly with SL_FLAG_EX check
+            return read_player_vitals_direct(ctx, p_player as usize);
+        }
+    };
+
+    let cur_hp = (values.get(&6).copied().unwrap_or(0).max(0) as u32) >> 8;
+    let max_hp = (values.get(&7).copied().unwrap_or(0).max(0) as u32) >> 8;
+    let cur_mana = (values.get(&8).copied().unwrap_or(0).max(0) as u32) >> 8;
+    let max_mana = (values.get(&9).copied().unwrap_or(0).max(0) as u32) >> 8;
+
+    if max_hp == 0 {
+        return None;
+    }
+
+    let hp_percent = ((cur_hp as u64 * 100) / max_hp as u64).min(100) as u32;
+    let mana_percent = if max_mana > 0 {
+        ((cur_mana as u64 * 100) / max_mana as u64).min(100) as u32
+    } else {
+        100
+    };
+
+    Some(PlayerVitals {
+        cur_hp,
+        max_hp,
+        hp_percent,
+        cur_mana,
+        max_mana,
+        mana_percent,
+    })
+}
+
+fn read_player_vitals_direct(ctx: &D2Context, p_player: usize) -> Option<PlayerVitals> {
     let p_stat_list = match ctx
         .process
         .read_memory::<u32>(p_player + stat_list::UNIT_TO_STATS_LIST)
@@ -90,18 +129,26 @@ pub fn read_player_vitals(ctx: &D2Context) -> Option<PlayerVitals> {
         _ => return None,
     };
 
-    let p_stat = match ctx
+    let flags = ctx
         .process
-        .read_memory::<u32>(p_stat_list + stat_list::SL_PSTAT)
-    {
+        .read_memory::<u32>(p_stat_list + stat_list::SL_FLAGS)
+        .unwrap_or(0);
+    let (array_offset, count_offset) = if flags & stat_list::SL_FLAG_EX == 0 {
+        (stat_list::SL_PSTAT, stat_list::SL_STAT_COUNT)
+    } else {
+        (stat_list::SL_FULL_PSTAT, stat_list::SL_FULL_STAT_COUNT)
+    };
+
+    let p_stat = match ctx.process.read_memory::<u32>(p_stat_list + array_offset) {
         Ok(p) if p != 0 => p as usize,
         _ => return None,
     };
 
     let count = (ctx
         .process
-        .read_memory::<u16>(p_stat_list + stat_list::SL_STAT_COUNT)
-        .unwrap_or(0) as usize)
+        .read_memory::<i16>(p_stat_list + count_offset)
+        .unwrap_or(0)
+        .max(0) as usize)
         .min(256);
 
     let mut cur_hp: u32 = 0;

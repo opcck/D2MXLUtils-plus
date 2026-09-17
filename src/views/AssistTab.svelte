@@ -121,7 +121,7 @@
   }
 </script>
 
-<div class="assist-tab">
+<section class="tab-content assist-tab">
   <!-- 实时角色血蓝监测面板 -->
   <div class="settings-section vitals-section">
     <div class="vitals-header">
@@ -328,13 +328,13 @@
       <Toggle checked={removeShadows} onchange={handleRemoveShadowsChange} />
     </div>
   </div>
-</div>
+</section>
 
 <style>
   .assist-tab {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    padding-right: var(--space-1);
   }
 
   /* 实时血蓝条 */

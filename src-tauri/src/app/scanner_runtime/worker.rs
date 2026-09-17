@@ -353,6 +353,8 @@ pub(super) fn start_scanner_internal(
             // updates; reducing requests does not establish a crash/leak fix.
             let mut breakpoints_tick_counter: u32 = 0;
             const BREAKPOINTS_CHECK_EVERY: u32 = 10;
+            let mut vitals_tick_counter: u32 = 0;
+            const VITALS_BROADCAST_EVERY: u32 = 4;
 
             #[cfg(any(target_os = "windows", target_os = "linux"))]
             let telemetry_snapshot = || stat_telemetry::try_snapshot(
@@ -754,7 +756,8 @@ pub(super) fn start_scanner_internal(
                     #[cfg(any(target_os = "windows", target_os = "linux"))]
                     if let Some(auto_potion_state) = app_handle.try_state::<crate::auto_potion::AutoPotionState>() {
                         if let Some(vitals) = crate::auto_potion::tick_auto_potion(&shared_state.ctx, &auto_potion_state) {
-                            if stats_tick_counter == 0 {
+                            vitals_tick_counter = vitals_tick_counter.wrapping_add(1);
+                            if vitals_tick_counter % VITALS_BROADCAST_EVERY == 0 {
                                 let _ = app_handle.emit("player-vitals-update", &vitals);
                             }
                         }
