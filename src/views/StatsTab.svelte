@@ -68,19 +68,9 @@
     const total = num(u.stats, statId);
     const pct = num(u.stats, pctId);
     const { flat, pctPoints } = splitBonus(total, pct, base);
-    return `${base} + ${flat} flat + ${pctPoints} (${pct}%) = ${total}`;
+    return `${base} (裸体) + ${flat} (装备技能) + ${pctPoints} (${pct}%) = ${total}`;
   }
 
-  /** Unlike attributes (where D2Stats.au3 itself validates that the unit's
-   *  own no-item StatList value is a meaningful "base"), Life/Mana are
-   *  *derived* stats — the engine most likely keeps them in sync using your
-   *  CURRENT total Vitality/Energy (points + skills + items all included)
-   *  whenever it changes, so there's no reliable way to isolate a "no-item"
-   *  base or a clean flat/percent split for them from what we can read. We
-   *  only show what's actually known: the real total (read from the
-   *  engine), your %Life/%Mana bonus (which applies to the whole pool,
-   *  vitality-derived portion included), and a best-effort estimate of how
-   *  much of the total is attributable to Vitality/Energy. */
   function lifeManaBreakdown(
     u: UnitStats,
     statId: number,
@@ -92,8 +82,8 @@
     const pct = num(u.stats, pctId);
     const vitalTotal = num(u.stats, vitalId);
     const fromVital = Math.floor(vitalTotal * perVital);
-    const vitalLabel = vitalId === 3 ? 'Vit' : 'Ene';
-    return `${total} (+${pct}%, ~${fromVital} from ${vitalLabel})`;
+    const vitalLabel = vitalId === 3 ? '体力' : '精力';
+    return `${total} (+${pct}%, 约 ${fromVital} 来自${vitalLabel})`;
   }
 
   function experienceLabel(u: UnitStats): string {
@@ -117,6 +107,13 @@
     return raw > 100
       ? `${capped.toFixed(1)}% (overcap, raw ${raw.toFixed(1)}%)`
       : `${capped.toFixed(1)}%`;
+  }
+
+  function lifeRegenLabel(u: UnitStats): string {
+    // D2 stat 74 is item_regenlife (25 frames/sec, value / 256 per frame).
+    // Actual HP/sec = (raw * 25) / 256.
+    const raw = num(u.stats, 74);
+    return String(Math.round((raw * 25) / 256));
   }
 
   function resistLabel(
@@ -187,292 +184,406 @@
   function buildSections(u: UnitStats): StatSection[] {
     return [
       {
-        title: 'Character',
+        title: '综合',
         rows: [
-          { label: 'Class', render: () => CLASSES.find((c) => c.id === u.class)?.name ?? '?' },
-          { label: 'Level', render: tpl('{12}') },
+          { label: '职业', render: () => CLASSES.find((c) => c.id === u.class)?.name ?? '?' },
+          { label: '等级', render: tpl('{12}') },
           {
-            label: 'Experience',
+            label: '经验值',
             render: experienceLabel,
-            tooltip: 'Current / needed for next level (approximate — see tooltip on the tab)',
+            tooltip: '当前经验值 / 升到下级所需经验值（大致估算）',
           },
-          { label: 'Gold (carried)', render: tpl('{14}') },
-          { label: 'Gold (stash)', render: tpl('{15}') },
-          { label: 'Signets of Learning', render: tpl('{185} / 400') },
-          // Charms and Max Skill Level are disabled for now, pending
-          // further verification of the locally-computed Charms count
-          // (stat 356 — the engine's own GetUnitStat was found to badly
-          // under-report) and the Max Skill Level row (stat 479).
-          { label: 'Magic Find', render: tpl('{80}%') },
-          { label: 'Gold Find', render: tpl('{79}%') },
-          { label: 'Experience Gain', render: tpl('+{85}%') },
+          { label: '携带金币', render: tpl('{14}') },
+          { label: '储物箱金币', render: tpl('{15}') },
+          {
+            label: '属性印章',
+            render: tpl('{185} / 400'),
+            tooltip: '由击杀敌人或分解物品获得的属性印章 (Signets of Attribute)，上限 400 点',
+          },
+          {
+            label: '魔法物品获取率 (MF)',
+            render: tpl('{80}%'),
+            tooltip: '增加掉落物品为魔法、稀有、套装或暗金的概率',
+          },
+          { label: '额外金钱获取 (GF)', render: tpl('{79}%') },
+          { label: '获得额外经验值', render: tpl('+{85}%') },
         ],
       },
       {
-        title: 'Attributes',
+        title: '主要属性',
         rows: [
           {
-            label: 'Strength',
+            label: '力量 (STR)',
             render: (u) => attributeBreakdown(u, 0, 359),
             tooltip:
-              'points + flat bonus (item/skill) + percent bonus, in points (percent) = total',
+              '基础点数 + 装备/技能加成 + 百分比加成 = 最终总计。需求穿上大部分装备，提升部分BD的攻击',
           },
-          { label: 'Dexterity', render: (u) => attributeBreakdown(u, 2, 360) },
-          { label: 'Vitality', render: (u) => attributeBreakdown(u, 3, 362) },
-          { label: 'Energy', render: (u) => attributeBreakdown(u, 1, 361) },
           {
-            label: 'Life',
+            label: '敏捷 (DEX)',
+            render: (u) => attributeBreakdown(u, 2, 360),
+            tooltip:
+              '基础点数 + 装备/技能加成 + 百分比加成 = 最终总计。需求穿上某些装备，提供攻击速度、盾牌格挡速度，增加部分BD的伤害',
+          },
+          {
+            label: '体力 (VIT)',
+            render: (u) => attributeBreakdown(u, 3, 362),
+            tooltip: '基础点数 + 装备/技能加成 + 百分比加成 = 最终总计。提升生命',
+          },
+          {
+            label: '精力 (ENG)',
+            render: (u) => attributeBreakdown(u, 1, 361),
+            tooltip:
+              '基础点数 + 装备/技能加成 + 百分比加成 = 最终总计。提升法力点数，增加大部分法术的伤害',
+          },
+          {
+            label: '生命',
             render: (u) => lifeManaBreakdown(u, 7, 76, 3, LIFE_PER_VIT[u.class] ?? 2),
             tooltip:
-              'Total is read directly from the game. The %Life bonus applies to your whole life pool, including the Vitality-derived part. The "from Vitality" figure is an estimate (current total Vitality × class factor) — not a precise engine breakdown. Wielding Azurewrath multiplies Life-per-Vitality by 0.9, which this estimate does not account for (reads ~11% high while equipped).',
+              '总生命值直接读取自游戏。%生命加成作用于包括体力换算的全部生命池。“来自体力”为估算值（当前总体力 × 职业系数）。装备碧蓝怒火(Azurewrath)时体力生命收益为0.9倍。',
           },
           {
-            label: 'Mana',
+            label: '法力',
             render: (u) => lifeManaBreakdown(u, 9, 77, 1, MANA_PER_ENE[u.class] ?? 2),
             tooltip:
-              'Total is read directly from the game. The %Mana bonus applies to your whole mana pool, including the Energy-derived part. The "from Energy" figure is an estimate (current total Energy × class factor) — not a precise engine breakdown.',
+              '总法力值直接读取自游戏。%法力加成作用于包括精力换算的全部法力池。“来自精力”为估算值（当前总精力 × 职业系数）。',
           },
         ],
       },
       {
-        title: 'Weapon Damage',
+        title: '武器伤害',
         rows: [
-          { label: 'Fire', render: tpl('{__fire}'), colorVar: 'var(--stat-fire, #e05d44)' },
-          { label: 'Cold', render: tpl('{__cold}'), colorVar: 'var(--stat-cold, #5b9bd5)' },
+          { label: '火焰伤害', render: tpl('{__fire}'), colorVar: 'var(--stat-fire, #e05d44)' },
+          { label: '冰冷伤害', render: tpl('{__cold}'), colorVar: 'var(--stat-cold, #5b9bd5)' },
           {
-            label: 'Lightning',
+            label: '闪电伤害',
             render: tpl('{__lightning}'),
             colorVar: 'var(--stat-lightning, #d4b106)',
           },
-          { label: 'Magic', render: tpl('{__magic}'), colorVar: 'var(--stat-magic, #b366cc)' },
-          { label: 'Poison', render: tpl('{__poison}/s'), colorVar: 'var(--stat-poison, #4caf50)' },
+          { label: '魔法伤害', render: tpl('{__magic}'), colorVar: 'var(--stat-magic, #b366cc)' },
           {
-            label: 'Innate Elemental Damage',
+            label: '毒素伤害',
+            render: tpl('{__poison}/秒'),
+            colorVar: 'var(--stat-poison, #4caf50)',
+          },
+          {
+            label: '固有元素伤害乘数',
             render: tpl('+{484}%'),
             tooltip:
-              "Bonus % to a weapon base's built-in elemental-from-attribute conversion (elemental bows/claws, etc). Only relevant for weapons with an innate elemental base.",
+              '固有元素伤害乘数，只有特定武器提供固有元素伤害转换加成 (例如自带元素伤害的弓、爪等)。仅对自带元素伤害的底模生效。',
           },
           {
-            label: 'Weapon Physical Damage',
+            label: '增强伤害 (ED)',
             render: tpl('{25}%'),
-            tooltip: 'Enhanced Weapon Damage',
+            tooltip: '物理武器伤害乘数 (转换前)，添加力量/敏捷伤害加成',
           },
           {
-            label: 'Strength Damage Bonus',
+            label: '力量武器物理增伤 (WPD)',
             render: tpl('+{__strdmg}%'),
-            tooltip:
-              'Approximate individual contribution — see Physical rows below for the actual total',
+            tooltip: '从力量点数获得的武器物理伤害 (WPD)',
           },
-          { label: 'Dexterity Damage Bonus', render: tpl('+{__dexdmg}%') },
-          { label: 'Physical (1H)', render: tpl('{__phys1h}') },
-          { label: 'Physical (2H/Ranged)', render: tpl('{__phys2h}') },
+          {
+            label: '敏捷武器物理增伤 (WPD)',
+            render: tpl('+{__dexdmg}%'),
+            tooltip: '从敏捷点数获得的武器物理伤害 (WPD)',
+          },
+          { label: '单手物理伤害', render: tpl('{__phys1h}') },
+          { label: '双手/远程物理伤害', render: tpl('{__phys2h}') },
         ],
       },
       {
-        title: 'Combat',
+        title: '防御',
         rows: [
-          { label: 'Total Character Defense', render: tpl('{171}%') },
-          { label: 'Attack Rating', render: tpl('+{119}% / +{19} flat') },
-          { label: 'Physical Damage Reduction', render: tpl('{34}') },
-          { label: 'Magic Damage Reduction', render: tpl('{35}') },
+          { label: '总防御加成', render: tpl('{171}%') },
           {
-            label: 'Grit',
+            label: '准确率 (AR)',
+            render: tpl('+{119}% / +{19} 基础'),
+            tooltip: '增加你的武器伤害技能准确率',
+          },
+          {
+            label: '物理伤害减少 (PDR)',
+            render: tpl('{34}'),
+            tooltip: '物理伤害减少，先于抗性生效',
+          },
+          {
+            label: '元素伤害减少 (EDR)',
+            render: tpl('{35}'),
+            tooltip: '元素伤害减少，先于抗性生效',
+          },
+          {
+            label: '毅力值 (Grit)',
             render: tpl('{184}%'),
-            tooltip: 'Damage reduction from all sources, mostly Grit',
+            tooltip: '所有伤害减少 - 基于总力量，与其它来源相乘',
           },
           {
-            label: 'Dodge',
+            label: '闪避 (Dodge)',
             render: tpl('{338}%'),
-            tooltip: 'Chance to avoid melee attacks while standing still',
+            tooltip: '在静止、攻击、施法和转向时躲避飞弹的几率',
           },
           {
-            label: 'Avoid',
+            label: '规避 (Avoid)',
             render: tpl('{339}%'),
-            tooltip: 'Chance to avoid projectiles while standing still',
+            tooltip: '当站立，攻击，施法，转向时几率忽视飞弹攻击',
           },
           {
-            label: 'Evade',
+            label: '躲避 (Evade)',
             render: tpl('{340}%'),
-            tooltip: 'Chance to avoid any attack while moving',
+            tooltip: '当移动时几率忽视近战和远程攻击',
           },
-          { label: 'Crushing Blow', render: tpl('{136}%') },
-          { label: 'Deadly Strike', render: tpl('{141}%') },
-          { label: 'Critical Strike', render: tpl('{344}%') },
+          {
+            label: '压碎性打击 (CB)',
+            render: tpl('{136}%'),
+            tooltip: '命中时有机会减少敌人百分之一的生命，不对Boss生效',
+          },
+          {
+            label: '致命攻击 (DS)',
+            render: tpl('{141}%'),
+            tooltip: '几率造成双倍武器伤害 (转换前)',
+          },
+          { label: '双倍打击 (CS)', render: tpl('{344}%') },
         ],
       },
       {
-        title: 'Resistances',
+        title: '抗性',
         rows: [
           {
-            label: 'Fire',
+            label: '火焰抗性',
             render: (u) => resistLabel(u, 39, 40, true),
             colorVar: 'var(--stat-fire, #e05d44)',
-            tooltip: 'Hard-capped at 90% — any excess +max-resist bonus is shown as (+X%)',
+            tooltip: '绝对上限为 90% — 超过极限的抗性可用于应对减益或敌方元素穿透',
           },
           {
-            label: 'Cold',
+            label: '冰冷抗性',
             render: (u) => resistLabel(u, 43, 44, true),
             colorVar: 'var(--stat-cold, #5b9bd5)',
-            tooltip: 'Hard-capped at 90% — any excess +max-resist bonus is shown as (+X%)',
+            tooltip: '绝对上限为 90% — 超过极限的抗性可用于应对减益或敌方元素穿透',
           },
           {
-            label: 'Lightning',
+            label: '闪电抗性',
             render: (u) => resistLabel(u, 41, 42, true),
             colorVar: 'var(--stat-lightning, #d4b106)',
-            tooltip: 'Hard-capped at 90% — any excess +max-resist bonus is shown as (+X%)',
+            tooltip: '绝对上限为 90% — 超过极限的抗性可用于应对减益或敌方元素穿透',
           },
           {
-            label: 'Poison',
+            label: '毒素抗性',
             render: (u) => resistLabel(u, 45, 46, true),
             colorVar: 'var(--stat-poison, #4caf50)',
-            tooltip: 'Hard-capped at 90% — any excess +max-resist bonus is shown as (+X%)',
+            tooltip: '绝对上限为 90% — 超过极限的抗性可用于应对减益或敌方元素穿透',
           },
           {
-            label: 'Magic',
+            label: '魔法抵抗',
             render: (u) => resistLabel(u, 37, 38),
             colorVar: 'var(--stat-magic, #b366cc)',
           },
           {
-            label: 'Physical',
+            label: '物理抗性',
             render: (u) => resistLabel(u, 36, null),
-            tooltip: 'Fixed 50% cap — no known item stat raises this max',
+            tooltip: '固定 50% 上限 — 暂无提升物理抗性上限的词条',
           },
-          { label: 'Curse Length Reduction', render: tpl('{109}%') },
-          { label: 'Poison Length Reduction', render: tpl('{110}%') },
+          {
+            label: '降低诅咒持续时间 (CLR)',
+            render: tpl('{109}%'),
+            tooltip: '减少对角色的诅咒持续时间',
+          },
+          {
+            label: '减少毒素持续时间 (PLR)',
+            render: tpl('{110}%'),
+            tooltip: '减少对人物的毒素伤害时间影响长度',
+          },
         ],
       },
       {
-        title: 'Spell Damage',
+        title: '法术伤害与穿透',
         rows: [
           {
-            label: 'Fire',
-            render: tpl('{329}% dmg / {333}% pierce'),
+            label: '火焰系',
+            render: tpl('{329}% 伤害 / {333}% 穿透'),
             colorVar: 'var(--stat-fire, #e05d44)',
+            tooltip: '百分比提升火焰法术伤害 / 百分比减少敌人火焰抗性',
           },
           {
-            label: 'Cold',
-            render: tpl('{331}% dmg / {335}% pierce'),
+            label: '冰冷系',
+            render: tpl('{331}% 伤害 / {335}% 穿透'),
             colorVar: 'var(--stat-cold, #5b9bd5)',
+            tooltip: '百分比提升冰冷法术伤害 / 百分比减少敌人冰冷抗性',
           },
           {
-            label: 'Lightning',
-            render: tpl('{330}% dmg / {334}% pierce'),
+            label: '闪电系',
+            render: tpl('{330}% 伤害 / {334}% 穿透'),
             colorVar: 'var(--stat-lightning, #d4b106)',
+            tooltip: '百分比提升闪电法术伤害 / 百分比减少敌人闪电抗性',
           },
           {
-            label: 'Poison',
-            render: tpl('{332}% dmg / {336}% pierce'),
+            label: '毒素系',
+            render: tpl('{332}% 伤害 / {336}% 穿透'),
             colorVar: 'var(--stat-poison, #4caf50)',
+            tooltip: '百分比提升毒素法术伤害 / 百分比减少敌人毒素抗性',
           },
           {
-            label: 'Poison Skill Duration',
+            label: '毒素技能持续时间',
             render: tpl('{431}%'),
             colorVar: 'var(--stat-poison, #4caf50)',
+            tooltip: '增加毒素法术的持续时间',
           },
-          { label: 'Physical / Magic Pierce', render: tpl('{357}% / 0%') },
-          { label: 'Spell Focus (flat)', render: tpl('{485}') },
+          { label: '物理 / 魔法穿透', render: tpl('{357}% / 0%') },
+          { label: '法术专注 (基础数值)', render: tpl('{485}') },
           {
-            label: 'Spell Focus (%)',
+            label: '法术专注 (%)',
             render: tpl('+{488}%'),
-            tooltip: 'Bonus % from items/runes, boosts flat Spell Focus multiplicatively',
+            tooltip: '来自装备/符文的法术专注百分比加成',
           },
           {
-            label: 'Spell Damage (from SF)',
+            label: '法术专注伤害加成',
             render: spellFocusCapLabel,
-            tooltip:
-              'min(Spell Focus / 10, 100)% — 1000 Spell Focus reaches the 100% cap; anything past that is wasted',
+            tooltip: '提升伤害乘数至法术专注，加 1% 总伤害 - 每 10 法术专注 (上限 100%)',
           },
           {
-            label: 'Spell Damage (from Energy)',
+            label: '精力法术伤害加成',
             render: tpl('+{907}%'),
-            tooltip: '130*(Energy+20)/500 + Energy — scales with Energy, no cap',
+            tooltip: '提升法力点数，增加大部分法术的伤害，无上限',
           },
         ],
       },
       {
-        title: 'Speed',
+        title: '速度',
         rows: [
           {
-            label: 'Increased Attack Speed',
-            render: tpl('{93}% item / {68}% skill'),
-            tooltip: 'Item IAS and skill-granted IAS behave differently for breakpoints',
+            label: '攻击速度 (IAS)',
+            render: tpl('{93}% 装备 / {68}% 技能'),
+            tooltip: '攻击速度提高近战挥击或远程武器攻击的速度',
           },
-          { label: 'Faster Hit Recovery', render: tpl('{99}% item / {69}% skill') },
-          { label: 'Faster Block Rate', render: tpl('{102}% item / {69}% skill') },
-          { label: 'Faster Run/Walk', render: tpl('{96}% item / {67}% skill') },
-          { label: 'Faster Cast Rate', render: tpl('{105}%') },
+          {
+            label: '击中回复 (FHR)',
+            render: tpl('{99}% 装备 / {69}% 技能'),
+            tooltip: '击中回复决定你被击中时回复的速度',
+          },
+          {
+            label: '格挡速度 (FBR)',
+            render: tpl('{102}% 装备 / {69}% 技能'),
+            tooltip: '格挡率决定你在格挡攻击后恢复的速度',
+          },
+          {
+            label: '跑步/行走速度 (FRW)',
+            render: tpl('{96}% 装备 / {67}% 技能'),
+            tooltip: '提高走路和冲刺速度 (收益递减)',
+          },
+          {
+            label: '施法速度 (FCR)',
+            render: tpl('{105}%'),
+            tooltip: '施法速度提升你释放法术的速度',
+          },
         ],
       },
       {
-        title: 'Absorb',
+        title: '伤害吸收',
         rows: [
           {
-            label: 'Fire',
-            render: tpl('{142}% / {143} flat'),
+            label: '吸收火焰伤害',
+            render: tpl('{142}% / {143} 固定值'),
             colorVar: 'var(--stat-fire, #e05d44)',
+            tooltip:
+              '吸收百分比在抵抗后应用，减少一定百分比的伤害并治疗该数值；固定吸收在吸收百分比后应用并恢复特定值',
           },
           {
-            label: 'Cold',
-            render: tpl('{148}% / {149} flat'),
+            label: '吸收冰冷伤害',
+            render: tpl('{148}% / {149} 固定值'),
             colorVar: 'var(--stat-cold, #5b9bd5)',
+            tooltip:
+              '吸收百分比在抵抗后应用，减少一定百分比的伤害并治疗该数值；固定吸收在吸收百分比后应用并恢复特定值',
           },
           {
-            label: 'Lightning',
-            render: tpl('{144}% / {145} flat'),
+            label: '吸收闪电伤害',
+            render: tpl('{144}% / {145} 固定值'),
             colorVar: 'var(--stat-lightning, #d4b106)',
+            tooltip:
+              '吸收百分比在抵抗后应用，减少一定百分比的伤害并治疗该数值；固定吸收在吸收百分比后应用并恢复特定值',
           },
           {
-            label: 'Magic',
-            render: tpl('{146}% / {147} flat'),
+            label: '吸收魔法伤害',
+            render: tpl('{146}% / {147} 固定值'),
             colorVar: 'var(--stat-magic, #b366cc)',
+            tooltip:
+              '吸收百分比在抵抗后应用，减少一定百分比的伤害并治疗该数值；固定吸收在吸收百分比后应用并恢复特定值',
           },
         ],
       },
       {
-        title: 'Life / Mana on Hit',
-        rows: [
-          { label: 'Leech (Life / Mana)', render: tpl('{60}% / {62}%') },
-          { label: 'After Each Kill (Life / Mana)', render: tpl('{86} / {138}') },
-          { label: 'On Striking (Life / Mana)', render: tpl('{208} / {209}') },
-          { label: 'On Attack (Life / Mana)', render: tpl('{210} / {295}') },
-        ],
-      },
-      {
-        title: 'Minions',
-        rows: [
-          { label: 'Life', render: tpl('+{444}%') },
-          { label: 'Damage', render: tpl('+{470}%') },
-          { label: 'Resistances', render: tpl('+{487}%') },
-          { label: 'Attack Rating', render: tpl('+{500}%') },
-        ],
-      },
-      {
-        title: 'Misc',
-        rows: [
-          { label: 'Buff/Debuff Duration', render: tpl('{409}%') },
-          { label: 'Life Regenerated / Sec', render: tpl('{74}') },
-          { label: 'Mana Regeneration', render: tpl('{27}%') },
-          { label: 'Target Takes Additional Damage', render: tpl('{489}') },
-          { label: 'Damage to Demons', render: tpl('+{121}%') },
-          { label: 'Damage to Undead', render: tpl('+{122}%') },
-          { label: 'Slows Target / Melee Target', render: tpl('{150}% / {376}%') },
-          { label: 'Slows Attacker / Ranged Attacker', render: tpl('{363}% / {493}%') },
-        ],
-      },
-      {
-        title: 'Flags',
+        title: '持续作战能力',
         rows: [
           {
-            label: 'Slain Monsters Rest In Peace',
-            render: tpl('Yes'),
+            label: '生命 / 法力偷取',
+            render: tpl('{60}% / {62}%'),
+            tooltip: '偷取造成的武器物理伤害的百分比生命/法力，噩梦和地狱中的效率降低',
+          },
+          { label: '杀敌后获得生命 / 法力 (EK)', render: tpl('{86} / {138}') },
+          {
+            label: '击中时获得生命 / 法力 (LoS/MoS)',
+            render: tpl('{208} / {209}'),
+            tooltip: '于每次被武器击中时获得生命或法力',
+          },
+          { label: '攻击时获得生命 / 法力 (LA8/MA8)', render: tpl('{210} / {295}') },
+        ],
+      },
+      {
+        title: '召唤',
+        rows: [
+          { label: '召唤物生命', render: tpl('+{444}%') },
+          { label: '召唤物伤害', render: tpl('+{470}%') },
+          { label: '召唤物所有抗性', render: tpl('+{487}%') },
+          { label: '召唤物准确率', render: tpl('+{500}%') },
+        ],
+      },
+      {
+        title: '杂项',
+        rows: [
+          {
+            label: '法术持续时间加成',
+            render: tpl('{409}%'),
+            tooltip: '增加大部分法术的持续效果',
+          },
+          {
+            label: '生命恢复/秒',
+            render: lifeRegenLabel,
+            tooltip: '每秒恢复的生命值',
+          },
+          {
+            label: '法力恢复速度',
+            render: tpl('{27}%'),
+            tooltip: '提供自然法力回复的百分比加成',
+          },
+          {
+            label: '目标承受额外伤害 (DTDU)',
+            render: tpl('{489}'),
+            tooltip: '只影响武器物理伤害',
+          },
+          { label: '对恶魔的伤害', render: tpl('+{121}%') },
+          { label: '对不死生物的伤害', render: tpl('+{122}%') },
+          {
+            label: '减速目标',
+            render: tpl('{150}% / {376}%'),
+            tooltip: '造成武器伤害时降低目标移动和攻击速度，对Boss的上限为 25%',
+          },
+          {
+            label: '缓速攻击者',
+            render: tpl('{363}% / {493}%'),
+            tooltip: '被远程飞弹击中时缓速攻击者',
+          },
+        ],
+      },
+      {
+        title: '特殊状态',
+        rows: [
+          {
+            label: '杀死怪物彻底平息 (RIP)',
+            render: tpl('已生效'),
             visible: (u) => num(u.stats, 108) >= 1,
+            tooltip: '被杀死的怪物无法被复活或召唤',
           },
           {
-            label: 'Half Freeze Duration',
-            render: tpl('Yes'),
+            label: '冻结时间减半',
+            render: tpl('已生效'),
             visible: (u) => num(u.stats, 118) >= 1,
           },
-          { label: 'Cannot Be Frozen', render: tpl('Yes'), visible: (u) => num(u.stats, 153) >= 1 },
+          { label: '无法被冻结', render: tpl('已生效'), visible: (u) => num(u.stats, 153) >= 1 },
         ],
       },
     ];
@@ -531,7 +642,7 @@
         activeEntity = 'player';
       }}
     >
-      Player
+      玩家角色
     </button>
     <button
       class="entity-btn"
@@ -540,15 +651,15 @@
         activeEntity = 'merc';
       }}
     >
-      Mercenary
+      雇佣兵
     </button>
   </div>
 
   {#if !active && !awaitingFirstData}
     <p class="no-data">
-      No character data — make sure Diablo II is running and the {activeEntity === 'merc'
-        ? 'mercenary is hired'
-        : 'character is loaded'}.
+      暂无数据 — 请确保暗黑破坏神II已在运行且{activeEntity === 'merc'
+        ? '已雇佣随从'
+        : '角色已载入游戏'}。
     </p>
   {:else if awaitingFirstData}
     <div class="stats-grid">

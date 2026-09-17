@@ -34,32 +34,32 @@
   const HOTKEY_ROWS: readonly HotkeyRow[] = [
     {
       id: 'toggleWindow',
-      label: 'Toggle window',
-      hint: 'Show/hide main window over game',
+      label: '切换窗口',
+      hint: '在游戏上方显示/隐藏主窗口',
       setter: (h) => settingsStore.setToggleWindowHotkey(h),
     },
     {
       id: 'editOverlay',
-      label: 'Reposition UI elements',
-      hint: 'Hold to drag the element anchor on the overlay',
+      label: '调整界面布局',
+      hint: '按住可拖拽悬浮窗各组件的锚点位置',
       setter: (h) => settingsStore.setEditOverlayHotkey(h),
     },
     {
       id: 'revealHidden',
-      label: 'Reveal hidden items',
-      hint: 'Hold to show every item on the ground, including those filtered out by `hide` rules',
+      label: '强制显示隐藏物品',
+      hint: '按住可在地面显示所有物品（临时忽略 `hide` 过滤规则）',
       setter: (h) => settingsStore.setRevealHiddenHotkey(h),
     },
     {
       id: 'lootHistory',
-      label: 'Loot history',
-      hint: 'Toggle the in-game loot log overlay (session drops)',
+      label: '掉落历史',
+      hint: '打开/关闭游戏内掉落日志面板（本次游戏会话的掉落）',
       setter: (h) => settingsStore.setLootHistoryHotkey(h),
     },
     {
       id: 'itemSearch',
-      label: 'Item search',
-      hint: 'Open the in-game MXL item database search overlay',
+      label: '物品检索',
+      hint: '打开游戏内 MXL 物品数据库搜索悬浮窗',
       setter: (h) => settingsStore.setItemSearchHotkey(h),
     },
   ];
@@ -67,8 +67,8 @@
   const DPS_HOTKEY_ROWS: readonly HotkeyRow[] = [
     {
       id: 'dpsMeterReset',
-      label: 'Reset DPS session',
-      hint: 'Clear DPS stats',
+      label: '重置 DPS 统计',
+      hint: '清空当前的秒伤统计数据',
       setter: (h) => settingsStore.setDpsMeterResetHotkey(h),
     },
   ];
@@ -76,8 +76,8 @@
   const GAME_CREATE_HOTKEY_ROWS: readonly HotkeyRow[] = [
     {
       id: 'gameCreateAutofill',
-      label: 'Autofill create-game fields',
-      hint: 'Click into the Game Name field first, then press this — types Name, Tab, Password, and Description (if set) for you',
+      label: '自动建房快速输入',
+      hint: '先点击建房界面游戏名称输入框，再按此键 — 自动填入名称、Tab、密码与描述（若已设置）',
       setter: (h) => settingsStore.setGameCreateAutofillHotkey(h),
     },
   ];
@@ -120,19 +120,19 @@
       case 'idle':
         return '';
       case 'checking':
-        return 'Checking…';
+        return '正在检查更新…';
       case 'up_to_date':
-        return 'You have the latest version';
+        return '已是最新版本';
       case 'available':
-        return `Update v${s.latest} available — click the button in the top right`;
+        return `发现新版本 v${s.latest} — 请点击右上角按钮更新`;
       case 'downloading':
-        return `Downloading ${formatBytes(s.downloaded)}`;
+        return `正在下载 ${formatBytes(s.downloaded)}`;
       case 'ready':
-        return 'Ready to install. Click "Restart" in the top right';
+        return '准备就绪，点击右上角“重启”以安装更新';
       case 'error':
         return s.phase === 'install'
-          ? 'Update failed — likely antivirus blocking. Use the "Download manually" button in the top right.'
-          : 'Failed to check for updates. Check your connection.';
+          ? '更新失败 — 可能是安全软件拦截。请使用右上角“手动下载”按钮。'
+          : '检查更新失败，请检查网络连接。';
     }
   }
 
@@ -147,25 +147,25 @@
       case 'idle':
         return '';
       case 'checking':
-        return 'Checking…';
+        return '正在检查…';
       case 'not_downloaded':
-        return 'Not downloaded yet — click "Download" to enable roll-range annotations';
+        return '尚未下载 — 点击“下载”以启用暗金/套装的变量范围显示';
       case 'up_to_date':
-        return 'Up to date';
+        return '数据库已是最新';
       case 'available':
-        return 'An updated database is available — click "Download"';
+        return '发现数据库更新 — 请点击“下载”';
       case 'downloading':
-        return 'Downloading…';
+        return '正在下载…';
       case 'downloaded':
-        return 'Downloaded — restart D2MXLUtils to apply';
+        return '下载完成 — 重启软件后生效';
       case 'error':
-        return `Failed: ${s.message}`;
+        return `失败: ${s.message}`;
     }
   }
 
   function uniqueDbButtonLabel(): string {
     const s = uniqueDbState;
-    return s.kind === 'not_downloaded' || s.kind === 'available' ? 'Download' : 'Check for update';
+    return s.kind === 'not_downloaded' || s.kind === 'available' ? '下载' : '检查更新';
   }
 
   function handleUniqueDbButtonClick() {
@@ -221,11 +221,11 @@
       case 'idle':
         return '';
       case 'refreshing':
-        return 'Refreshing…';
+        return '正在刷新…';
       case 'done':
-        return 'Done — rebuilding from the game live now (or on next attach if D2 isn’t running).';
+        return '完成 — 正在从游戏内存实时重新构建（若游戏未运行，则在下次连接时生效）。';
       case 'error':
-        return 'Failed to refresh — check d2mxlutils.log.';
+        return '刷新失败 — 请查看 d2mxlutils.log 日志。';
     }
   }
 
@@ -344,7 +344,7 @@
 
 <section class="tab-content">
   <div class="settings-section">
-    <h2 class="section-title">Hotkeys</h2>
+    <h2 class="section-title">快捷键设置</h2>
 
     {#each HOTKEY_ROWS as row (row.id)}
       <div class="setting-row">
@@ -359,11 +359,11 @@
   </div>
 
   <div class="settings-section">
-    <h2 class="section-title">DPS Meter</h2>
+    <h2 class="section-title">秒伤统计 (DPS Meter)</h2>
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Show DPS meter</span>
+        <span class="setting-label">显示 DPS 悬浮窗</span>
       </div>
       <Toggle checked={dpsMeterEnabled} onchange={handleDpsMeterEnabledChange} />
     </div>
@@ -380,7 +380,7 @@
   </div>
 
   <div class="settings-section">
-    <h2 class="section-title">Create Game Autofill</h2>
+    <h2 class="section-title">自动建房填充</h2>
 
     {#each GAME_CREATE_HOTKEY_ROWS as row (row.id)}
       <div class="setting-row">
@@ -394,24 +394,22 @@
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Game name prefix</span>
-        <span class="setting-hint"
-          >Game name = prefix + an auto-incrementing number (not saved between launches)</span
-        >
+        <span class="setting-label">游戏名称前缀</span>
+        <span class="setting-hint">房间名称 = 前缀 + 自动递增序号（重启软件后不保留）</span>
       </div>
       <input
         type="text"
         class="text-input"
         value={gameCreateNamePrefix}
         oninput={handleGameCreateNamePrefixInput}
-        placeholder="e.g. MyGame"
+        placeholder="例如：MyGame"
       />
     </div>
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Password auto-increments too</span>
-        <span class="setting-hint">Uses the same number as the game name for this run</span>
+        <span class="setting-label">密码也自动递增</span>
+        <span class="setting-hint">使用与本次游戏名称相同的序号</span>
       </div>
       <Toggle
         checked={gameCreatePasswordUsePrefix}
@@ -422,20 +420,20 @@
     {#if gameCreatePasswordUsePrefix}
       <div class="setting-row">
         <div class="setting-info">
-          <span class="setting-label">Password prefix</span>
+          <span class="setting-label">密码前缀</span>
         </div>
         <input
           type="text"
           class="text-input"
           value={gameCreatePasswordPrefix}
           oninput={handleGameCreatePasswordPrefixInput}
-          placeholder="e.g. pw"
+          placeholder="例如：pw"
         />
       </div>
     {:else}
       <div class="setting-row">
         <div class="setting-info">
-          <span class="setting-label">Password</span>
+          <span class="setting-label">固定密码</span>
         </div>
         <input
           type="text"
@@ -448,8 +446,8 @@
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Description</span>
-        <span class="setting-hint">Left as-is if empty</span>
+        <span class="setting-label">房间描述</span>
+        <span class="setting-hint">留空则保持默认不填</span>
       </div>
       <input
         type="text"
@@ -463,38 +461,33 @@
   <div class="settings-section">
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Auto-toggle item highlight (alt) on new game</span>
-        <span class="setting-hint">Highlights ground drops automatically without pressing Alt.</span
-        >
+        <span class="setting-label">新建游戏时自动开启地面物品常显 (Alt)</span>
+        <span class="setting-hint">无需按 Alt 键，自动在地面显示掉落物品。</span>
       </div>
       <Toggle checked={autoAlwaysShowItems} onchange={handleAutoAlwaysShowItemsChange} />
     </div>
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Show "Items hidden" indicator</span>
-        <span class="setting-hint"
-          >Shows an on-screen reminder to press Alt when item highlight is off.</span
-        >
+        <span class="setting-label">显示“物品已隐藏”提醒标识</span>
+        <span class="setting-hint">当物品高亮关闭时，在屏幕左上角提示按 Alt。</span>
       </div>
       <Toggle checked={showItemsHiddenIndicator} onchange={handleShowItemsHiddenIndicatorChange} />
     </div>
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Auto-enable /nopickup on new game</span>
-        <span class="setting-hint"
-          >Prevents accidental pickup; changes in game apply immediately.</span
-        >
+        <span class="setting-label">新建游戏时自动开启 /nopickup 命令</span>
+        <span class="setting-hint">防止鼠标意外捡起地面垃圾物品；修改后游戏内立即生效。</span>
       </div>
       <Toggle checked={autoNoPickup} onchange={handleAutoNoPickupChange} />
     </div>
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Verbose filter logging</span>
+        <span class="setting-label">详细过滤日志记录</span>
         <span class="setting-hint"
-          >Log per-item filter decisions to d2mxlutils.log. Useful when debugging rules.</span
+          >将每件物品的过滤判定过程记录到 d2mxlutils.log，用于调试规则。</span
         >
       </div>
       <Toggle checked={verboseFilterLogging} onchange={handleVerboseLoggingChange} />
@@ -502,9 +495,9 @@
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Show matches highlight duration</span>
+        <span class="setting-label">规则实时匹配高亮持续时间</span>
         <span class="setting-hint"
-          >How long the Loot Filter tab's "Show matches" mode keeps a rule line flashed (0.2-5s).</span
+          >在“掉落过滤”标签页开启“显示实时匹配”时，命中规则行的闪烁持续时间 (0.2-5秒)。</span
         >
       </div>
       <div class="setting-control">
@@ -524,20 +517,20 @@
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">App data folder</span>
-        <span class="setting-hint">Settings, profiles, logs</span>
+        <span class="setting-label">应用数据目录</span>
+        <span class="setting-hint">存放配置文件、过滤规则、运行日志</span>
       </div>
       <div class="update-control">
-        <Button variant="secondary" size="sm" onclick={handleOpenAppFolder}>Open folder</Button>
+        <Button variant="secondary" size="sm" onclick={handleOpenAppFolder}>打开目录</Button>
       </div>
     </div>
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Current version</span>
+        <span class="setting-label">当前版本</span>
         <span class="setting-hint">
           v{__APP_VERSION__}
-          <button type="button" class="link-button" onclick={handleOpenChangelog}>Changelog</button>
+          <button type="button" class="link-button" onclick={handleOpenChangelog}>更新日志</button>
         </span>
       </div>
       <div class="update-control">
@@ -547,7 +540,7 @@
           disabled={checkDisabled}
           onclick={handleCheckForUpdates}
         >
-          Check for updates
+          检查更新
         </Button>
       </div>
     </div>
@@ -560,10 +553,9 @@
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Unique/set roll-range database</span>
+        <span class="setting-label">暗金/套装变量属性范围数据库</span>
         <span class="setting-hint">
-          Adds possible roll ranges to unique/set item stats. Maintainer-built; downloading it skips
-          every client crawling the item API themselves.
+          为暗金和套装物品提供变量属性范围说明。下载离线数据库后无需客户端重复爬取 API。
         </span>
       </div>
       <div class="update-control">
@@ -586,11 +578,10 @@
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Refresh game data cache</span>
+        <span class="setting-label">刷新游戏数据缓存</span>
         <span class="setting-hint">
-          Rebuilds item/unique/set names and weapon bases from the game. Use this after an MXL patch
-          if drops look mislabeled. No restart needed — takes effect immediately if D2 is attached,
-          or on next attach otherwise.
+          从游戏内存重新构建物品名、暗金/套装名与武器底模。在 MXL
+          内容补丁后若掉落名称异常可使用此项。无需重启软件。
         </span>
       </div>
       <div class="update-control">
@@ -600,7 +591,7 @@
           disabled={refreshGameDataStatus === 'refreshing'}
           onclick={handleRefreshGameData}
         >
-          Refresh
+          刷新
         </Button>
       </div>
     </div>
@@ -624,7 +615,7 @@
   >
     <div class="changelog-modal" onclick={(e) => e.stopPropagation()}>
       <div class="changelog-header">
-        <h2 class="changelog-title">Changelog</h2>
+        <h2 class="changelog-title">更新日志</h2>
         <button type="button" class="changelog-close" onclick={() => (showChangelog = false)}
           >&times;</button
         >

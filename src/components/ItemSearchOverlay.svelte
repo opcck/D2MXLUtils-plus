@@ -130,7 +130,7 @@
       tooltip = null;
       loading = false;
       loadingName = null;
-      message = 'Type at least 2 characters to search.';
+      message = '请输入至少2个字符进行搜索。';
       return;
     }
 
@@ -219,7 +219,7 @@
       if (requestId !== searchRequestId) return;
       console.error('[ItemSearch] search failed:', err);
       entries = [];
-      message = 'Search failed. Check connection and try again.';
+      message = '搜索失败，请检查网络连接后重试。';
     } finally {
       if (requestId === searchRequestId) loading = false;
     }
@@ -280,7 +280,7 @@
     } catch (err) {
       if (requestId !== detailRequestId) return;
       console.error('[ItemSearch] detail lookup failed:', err);
-      message = 'Search failed. Check connection and try again.';
+      message = '搜索失败，请检查网络连接后重试。';
     } finally {
       if (requestId === detailRequestId) loadingName = null;
     }
@@ -395,16 +395,16 @@
     style:transform="translate({viewportOffset.x}px, {viewportOffset.y}px)"
   >
     {#if open}
-      <section class="item-search" role="dialog" aria-label="MXL item search">
+      <section class="item-search" role="dialog" aria-label="Median XL 物品搜索">
         <header
           class="search-header"
           use:dragWindow={{ target: () => layoutEl, onMove: moveWindow }}
         >
           <div>
-            <h2>Item Search</h2>
-            <p>Median XL database</p>
+            <h2>物品搜索</h2>
+            <p>Median XL 数据库</p>
           </div>
-          <button type="button" class="close" aria-label="Close item search" onclick={closeAll}
+          <button type="button" class="close" aria-label="关闭物品搜索" onclick={closeAll}
             >&times;</button
           >
         </header>
@@ -426,7 +426,7 @@
             bind:value={inputValue}
             autocomplete="off"
             spellcheck="false"
-            placeholder="Type at least 2 characters"
+            placeholder="输入至少 2 个字符搜索物品..."
           />
         </form>
 
@@ -436,9 +436,9 @@
 
         <div class="results" aria-live="polite">
           {#if loading}
-            <div class="empty">Searching...</div>
+            <div class="empty">搜索中...</div>
           {:else if entries.length === 0}
-            <div class="empty">No previous results.</div>
+            <div class="empty">无搜索结果。</div>
           {:else}
             {#each entries as entry (entry.name)}
               <button type="button" class="result-row" onclick={() => openTooltip(entry)}>
@@ -450,7 +450,7 @@
                   <span class="result-type">{entryTypeLine(entry)}</span>
                 {/if}
                 {#if loadingName === entry.name}
-                  <span class="row-loading">Loading stats...</span>
+                  <span class="row-loading">加载属性中...</span>
                 {/if}
               </button>
             {/each}
@@ -460,11 +460,11 @@
     {/if}
 
     {#if tooltip}
-      <section class="item-tooltip" role="dialog" aria-label="Item stats">
+      <section class="item-tooltip" role="dialog" aria-label="物品属性">
         <button
           type="button"
           class="tooltip-close"
-          aria-label="Close item tooltip"
+          aria-label="关闭属性提示"
           onclick={() => (tooltip = null)}>&times;</button
         >
         <h3 style:color={itemQualityColor(tooltip.quality)}>

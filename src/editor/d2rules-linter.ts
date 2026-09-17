@@ -52,7 +52,7 @@ function scanSoundSlotRefs(doc: import('@codemirror/state').Text): Diagnostic[] 
         from: line.from + m.index,
         to: line.from + m.index + m[0].length,
         severity: 'info',
-        message: `sound${n} is not configured on the Sounds tab.`,
+        message: `sound${n} 尚未在“音效设置”标签页中配置。`,
         source: 'd2rules',
       });
     }

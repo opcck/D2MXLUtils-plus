@@ -29,12 +29,12 @@ export interface OverlayWidgetSpec {
 export const OVERLAY_WIDGETS = [
   {
     id: 'notifications',
-    label: 'Drop notifications',
+    label: '掉落通知',
     ghostSize: { width: 300, height: 80 },
   },
   {
     id: 'dps-meter',
-    label: 'DPS meter',
+    label: '秒伤统计 (DPS)',
     ghostSize: { width: 130, height: 110 },
   },
 ] as const satisfies readonly OverlayWidgetSpec[];

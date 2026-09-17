@@ -31,7 +31,7 @@
 </script>
 
 {#if visible}
-  <div class="indicator" role="status" aria-live="polite">Items hidden — press Alt</div>
+  <div class="indicator" role="status" aria-live="polite">物品已隐藏 — 按 Alt 显示</div>
 {/if}
 
 <style>

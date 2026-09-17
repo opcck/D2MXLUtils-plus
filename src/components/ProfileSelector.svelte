@@ -123,7 +123,7 @@
   function openDuplicateDialog() {
     if (!selectedProfile) return;
     dialogMode = 'duplicate';
-    dialogInput = `${selectedProfile} Copy`;
+    dialogInput = `${selectedProfile} 副本`;
     dialogError = null;
     showDialog = true;
     showDropdown = false;
@@ -131,7 +131,7 @@
 
   async function handleDialogSubmit() {
     if (!dialogInput.trim()) {
-      dialogError = 'Name cannot be empty';
+      dialogError = '名称不能为空';
       return;
     }
 
@@ -170,7 +170,7 @@
   async function deleteProfile() {
     if (!selectedProfile) return;
 
-    if (!confirm(`Delete profile "${selectedProfile}"?`)) return;
+    if (!confirm(`确定要删除配置文件 "${selectedProfile}" 吗？`)) return;
 
     isLoading = true;
     error = null;
@@ -185,7 +185,7 @@
         await selectProfile(profiles[0]);
       } else {
         onselect?.(null);
-        onload?.('', '# No profile selected\n');
+        onload?.('', '# 未选择配置文件\n');
       }
 
       showDropdown = false;
@@ -228,7 +228,7 @@
     >
       <span class="profile-icon">📁</span>
       <span class="profile-name">
-        {selectedProfile || 'No profile'}
+        {selectedProfile || '未选择配置'}
       </span>
       <span class="dropdown-arrow" class:open={showDropdown}>▼</span>
     </button>
@@ -236,7 +236,7 @@
     {#if showDropdown}
       <div class="dropdown-menu">
         {#if profiles.length === 0}
-          <div class="dropdown-empty">No profiles yet</div>
+          <div class="dropdown-empty">暂无配置文件</div>
         {:else}
           {#each profiles as profile}
             <button
@@ -245,7 +245,7 @@
               onclick={() => selectProfile(profile)}
             >
               <span class="item-name">{profile.name}</span>
-              <span class="item-meta">{profile.ruleCount} rules</span>
+              <span class="item-meta">{profile.ruleCount} 条规则</span>
             </button>
           {/each}
         {/if}
@@ -253,16 +253,16 @@
         <div class="dropdown-divider"></div>
 
         <button class="dropdown-action" onclick={openNewDialog}>
-          <span>➕</span> New Profile
+          <span>➕</span> 新建配置
         </button>
         <button class="dropdown-action" onclick={openRenameDialog} disabled={!selectedProfile}>
-          <span>✏️</span> Rename
+          <span>✏️</span> 重命名
         </button>
         <button class="dropdown-action" onclick={openDuplicateDialog} disabled={!selectedProfile}>
-          <span>📋</span> Duplicate
+          <span>📋</span> 复制配置
         </button>
         <button class="dropdown-action danger" onclick={deleteProfile} disabled={!selectedProfile}>
-          <span>🗑️</span> Delete
+          <span>🗑️</span> 删除配置
         </button>
       </div>
     {/if}
@@ -279,18 +279,18 @@
     <div class="dialog" onclick={(e) => e.stopPropagation()}>
       <h3 class="dialog-title">
         {#if dialogMode === 'new'}
-          New Profile
+          新建配置文件
         {:else if dialogMode === 'rename'}
-          Rename Profile
+          重命名配置文件
         {:else}
-          Duplicate Profile
+          复制配置文件
         {/if}
       </h3>
 
       <input
         class="dialog-input"
         type="text"
-        placeholder="Profile name"
+        placeholder="配置文件名称"
         bind:value={dialogInput}
         autofocus
       />
@@ -300,7 +300,7 @@
       {/if}
 
       <div class="dialog-actions">
-        <Button variant="ghost" size="sm" onclick={() => (showDialog = false)}>Cancel</Button>
+        <Button variant="ghost" size="sm" onclick={() => (showDialog = false)}>取消</Button>
         <Button
           variant="primary"
           size="sm"
@@ -310,10 +310,10 @@
           {isLoading
             ? '...'
             : dialogMode === 'new'
-              ? 'Create'
+              ? '创建'
               : dialogMode === 'rename'
-                ? 'Rename'
-                : 'Duplicate'}
+                ? '重命名'
+                : '复制'}
         </Button>
       </div>
     </div>

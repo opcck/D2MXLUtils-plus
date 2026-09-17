@@ -66,7 +66,7 @@
 
     setError(slot, null);
     if (file.size > MAX_BYTES) {
-      setError(slot, `File too large (${Math.ceil(file.size / 1024)} KB, max 5 MB)`);
+      setError(slot, `文件过大 (${Math.ceil(file.size / 1024)} KB，最大限制 5 MB)`);
       return;
     }
 
@@ -132,10 +132,8 @@
   <div class="settings-section">
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Master volume</span>
-        <span class="setting-hint">
-          Multiplied with each slot's per-sound volume. Set to 0 to silence everything.
-        </span>
+        <span class="setting-label">主音量</span>
+        <span class="setting-hint"> 与每个槽位的单项音量相乘。设置为 0 可静音所有掉落音效。 </span>
       </div>
       <div class="setting-control">
         <input
@@ -146,7 +144,7 @@
           value={masterVolume}
           oninput={handleMasterVolumeInput}
           class="slider"
-          aria-label="Master sound volume"
+          aria-label="主音量"
         />
         <span class="setting-value">{Math.round(masterVolume * 100)}%</span>
       </div>
@@ -154,21 +152,21 @@
 
     <div class="setting-row">
       <div class="setting-info">
-        <span class="setting-label">Goblin alert</span>
+        <span class="setting-label">盗宝地精警报</span>
         <span class="setting-hint">
-          Plays the selected sound when a goblin appears nearby. Pick "None" to disable.
+          当附近出现盗宝地精时播放选定音效。选择“无 (关闭)”可禁用警报。
         </span>
       </div>
       <div class="setting-control">
         <Select
           class="goblin-select"
-          ariaLabel="Goblin alert sound"
+          ariaLabel="盗宝地精警报音效"
           value={goblinAlertSlot != null ? String(goblinAlertSlot) : ''}
           options={[
-            { value: '', label: 'None' },
+            { value: '', label: '无 (关闭)' },
             ...alertChoices.map(({ index, slot }) => ({
               value: String(index),
-              label: slot.label || `Sound ${index}`,
+              label: slot.label || `音效 ${index}`,
             })),
           ]}
           onchange={handleGoblinAlertChange}
@@ -178,7 +176,7 @@
   </div>
 
   <div class="settings-section">
-    <h2 class="section-title">Sounds</h2>
+    <h2 class="section-title">音效槽位</h2>
 
     {#each slots as slot, i (i)}
       {@const slotIndex = i + 1}
@@ -191,9 +189,9 @@
           class:slot-label-empty={empty}
           type="text"
           value={slot.label}
-          placeholder={`Sound ${slotIndex}`}
+          placeholder={`音效 ${slotIndex}`}
           oninput={(e) => handleLabelInput(slotIndex, e)}
-          aria-label={`Label for sound ${slotIndex}`}
+          aria-label={`音效 ${slotIndex} 名称`}
         />
 
         <div class="slot-volume" class:slot-volume-empty={empty}>
@@ -206,7 +204,7 @@
             disabled={empty}
             oninput={(e) => handleSlotVolumeInput(slotIndex, e)}
             class="slider"
-            aria-label={`Volume for sound ${slotIndex}`}
+            aria-label={`音效 ${slotIndex} 音量`}
           />
           <span class="setting-value">{Math.round(slot.volume * 100)}%</span>
         </div>
@@ -214,7 +212,7 @@
         <div class="slot-actions">
           {#if !empty}
             <Button variant="secondary" size="sm" onclick={() => handlePlay(slotIndex)}>
-              Play
+              试听
             </Button>
           {/if}
 
@@ -225,7 +223,7 @@
               document.getElementById(fileInputId(slotIndex))?.click();
             }}
           >
-            {empty ? 'Upload' : 'Replace'}
+            {empty ? '上传' : '替换'}
           </Button>
           <input
             id={fileInputId(slotIndex)}
@@ -237,13 +235,13 @@
 
           {#if isBuiltin(slotIndex) && isCustom(slot.source)}
             <Button variant="secondary" size="sm" onclick={() => handleReset(slotIndex)}>
-              Reset
+              重置
             </Button>
           {/if}
 
           {#if !isBuiltin(slotIndex) && isCustom(slot.source)}
             <Button variant="secondary" size="sm" onclick={() => handleDelete(slotIndex)}>
-              Delete
+              删除
             </Button>
           {/if}
         </div>
@@ -255,7 +253,7 @@
     {/each}
 
     <div class="add-row">
-      <Button variant="secondary" size="sm" onclick={handleAdd}>+ Add sound</Button>
+      <Button variant="secondary" size="sm" onclick={handleAdd}>+ 添加音效</Button>
     </div>
   </div>
 </section>

@@ -29,12 +29,12 @@
   let activeTab = $state('general');
 
   const tabs = [
-    { id: 'general', label: 'General' },
-    { id: 'lootfilter', label: 'Loot Filter' },
-    { id: 'notifications', label: 'Notifications' },
-    { id: 'sounds', label: 'Sounds' },
-    { id: 'breakpoints', label: 'Breakpoints' },
-    { id: 'stats', label: 'Stats' },
+    { id: 'general', label: '常规设置' },
+    { id: 'lootfilter', label: '掉落过滤' },
+    { id: 'notifications', label: '通知提醒' },
+    { id: 'sounds', label: '音效设置' },
+    { id: 'breakpoints', label: '档位查询' },
+    { id: 'stats', label: '角色属性' },
   ];
 
   function getStatusColor(status: string): string {
@@ -54,11 +54,11 @@
   function getGameStatusText(): string {
     switch (gameStatus) {
       case 'ingame':
-        return 'In Game';
+        return '游戏内';
       case 'menu':
-        return 'Menu';
+        return '菜单主界面';
       default:
-        return 'Not Found';
+        return '未检测到游戏';
     }
   }
 
@@ -230,7 +230,9 @@
 
   <!-- Footer -->
   <footer class="footer">
-    <span class="footer-text">Made with ❤️ by synonymouse · Contributions by Pertinate</span>
+    <span class="footer-text"
+      >Made with ❤️ by synonymouse · Contributions by Pertinate · 翻译：西西</span
+    >
   </footer>
 </main>
 

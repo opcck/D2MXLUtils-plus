@@ -6,8 +6,8 @@
     unit_id: 0,
     class: 0,
     quality: 'Unique',
-    name: "Tyrael's Might SU",
-    base_name: 'Sacred Armor',
+    name: "Tyrael's Might SU (泰瑞尔之力)",
+    base_name: 'Sacred Armor (神圣战甲)',
     stats: '',
     is_ethereal: true,
     is_identified: true,
@@ -19,14 +19,14 @@
     unit_id: 1,
     class: 0,
     quality: 'Unique',
-    name: "Tyrael's Might SU",
-    base_name: 'Sacred Armor',
+    name: "Tyrael's Might SU (泰瑞尔之力)",
+    base_name: 'Sacred Armor (神圣战甲)',
     stats: [
-      'Indestructible',
-      '+150% Enhanced Defense',
-      '+20% Faster Run/Walk',
-      'Requirements -100%',
-      '+2 to All Skills',
+      '无法破坏',
+      '+150% 强化防御',
+      '+20% 快速奔跑/行走',
+      '装备需求 -100%',
+      '+2 所有技能',
     ].join('\n'),
     is_ethereal: true,
     is_identified: true,
@@ -38,9 +38,9 @@
     unit_id: 2,
     class: 0,
     quality: 'Rare',
-    name: 'Rune Turn',
-    base_name: 'Sacred Ring',
-    stats: ['+15% Faster Cast Rate', '+1 to All Skills', '+25 to Mana'].join('\n'),
+    name: 'Rune Turn (符文指环)',
+    base_name: 'Sacred Ring (神圣戒指)',
+    stats: ['+15% 快速施法速度', '+1 所有技能', '+25 法力'].join('\n'),
     is_ethereal: false,
     is_identified: true,
     unique_kind: null,
@@ -79,14 +79,14 @@
 
 <section class="tab-content">
   <div class="settings-section">
-    <h2 class="section-title">Notification Settings</h2>
-    <p class="section-description">Customize how item drop notifications appear in the overlay.</p>
+    <h2 class="section-title">通知设置</h2>
+    <p class="section-description">自定义游戏悬浮窗中掉落通知的显示样式。</p>
 
     <div class="settings-grid">
       <div class="setting-row">
         <div class="setting-info">
-          <label class="setting-label" for="duration">Display Duration</label>
-          <span class="setting-hint">How long notifications stay visible (1-30 seconds)</span>
+          <label class="setting-label" for="duration">停留时长</label>
+          <span class="setting-hint">通知在屏幕上停留显示的时间 (1-30 秒)</span>
         </div>
         <div class="setting-control">
           <input
@@ -105,8 +105,8 @@
 
       <div class="setting-row">
         <div class="setting-info">
-          <label class="setting-label" for="font-size">Size</label>
-          <span class="setting-hint">Scales the whole notification (10-36 px)</span>
+          <label class="setting-label" for="font-size">尺寸缩放</label>
+          <span class="setting-hint">缩放通知面板整体大小 (10-36 像素)</span>
         </div>
         <div class="setting-control">
           <input
@@ -125,8 +125,8 @@
 
       <div class="setting-row">
         <div class="setting-info">
-          <label class="setting-label" for="opacity">Background Opacity</label>
-          <span class="setting-hint">Transparency of notification background (0-100%)</span>
+          <label class="setting-label" for="opacity">背景不透明度</label>
+          <span class="setting-hint">通知弹窗背景的不透明度 (0-100%)</span>
         </div>
         <div class="setting-control">
           <input
@@ -145,10 +145,9 @@
 
       <div class="setting-row">
         <div class="setting-info">
-          <label class="setting-label" for="compact-name">Compact name</label>
+          <label class="setting-label" for="compact-name">精简物品名称</label>
           <span class="setting-hint">
-            Hide unique/set name line for Set/TU/SU/SSU/SSSU drops, show only base type. Rules with
-            the <code>stat</code> flag ignore this.
+            对套装及各级暗金 (TU/SU/SSU/SSSU) 隐藏专属名称行，仅显示底模类型。带有 <code>stat</code> 标记的规则会忽略此项。
           </span>
         </div>
         <div class="setting-control">
@@ -158,10 +157,9 @@
 
       <div class="setting-row">
         <div class="setting-info">
-          <label class="setting-label" for="show-only-matched-stats">Matched stats only</label>
+          <label class="setting-label" for="show-only-matched-stats">仅显示命中词条</label>
           <span class="setting-hint">
-            For rules with <code>&#123;stat regex&#125;</code>, show only matched stat lines.
-            Multi-line regex matches fall back to all stats.
+            对于带有 <code>&#123;stat 属性正则&#125;</code> 的规则，仅显示匹配成功的词条行。多行正则匹配将退回显示全部属性。
           </span>
         </div>
         <div class="setting-control">
@@ -176,7 +174,7 @@
   </div>
 
   <div class="preview-section">
-    <h3 class="preview-title">Preview</h3>
+    <h3 class="preview-title">实时预览效果</h3>
     <div class="preview-container">
       <Notification item={previewPlain} {fontSize} {opacity} {compactName} {showOnlyMatchedStats} />
       <Notification

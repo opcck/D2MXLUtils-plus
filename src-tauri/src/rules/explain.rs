@@ -1,4 +1,4 @@
-//! Plain-English explainer for a single line of the loot-filter DSL.
+//! 针对掉落过滤规则 DSL 单行语句的中文自然语言解释器。
 
 use super::dsl::{classify_line, ParsedLine};
 use super::{ItemQuality, ItemTier, NotifyColor, Rule, UniqueKind, Visibility};
@@ -18,10 +18,10 @@ pub fn explain_line(line: &str) -> Option<String> {
 
 fn format_directive(hide: bool) -> String {
     if hide {
-        "File directive: hide every item that no rule matches. Rules with 'show' override this for individual items.".to_string()
-    } else {
-        "File directive: defer to the game's built-in filter for items that no rule matches."
+        "文件指令：隐藏所有未被任何规则匹配的物品。包含 'show' 的规则可针对特定物品覆盖此设置。"
             .to_string()
+    } else {
+        "文件指令：未被规则匹配的物品，交由游戏内置的过滤器决定。".to_string()
     }
 }
 
@@ -32,9 +32,9 @@ fn format_rule(rule: &Rule) -> String {
     let mut out = String::new();
 
     if predicate_bullets.is_empty() {
-        out.push_str("Matches every item.");
+        out.push_str("匹配所有物品。");
     } else if predicate_bullets.len() == 1 {
-        out.push_str("Matches when:\n");
+        out.push_str("匹配条件：\n");
         out.push_str("  • ");
         out.push_str(&predicate_bullets[0]);
         if let Some(note) = unrestricted_categories(rule) {
@@ -42,7 +42,7 @@ fn format_rule(rule: &Rule) -> String {
             out.push_str(&note);
         }
     } else {
-        out.push_str("Matches when ALL of these are true:");
+        out.push_str("当满足以下全部条件时匹配：");
         for bullet in &predicate_bullets {
             out.push_str("\n  • ");
             out.push_str(bullet);
@@ -50,7 +50,7 @@ fn format_rule(rule: &Rule) -> String {
     }
 
     if !action_bullets.is_empty() {
-        out.push_str("\n\nActions:");
+        out.push_str("\n\n触发动作：");
         for bullet in &action_bullets {
             out.push_str("\n  • ");
             out.push_str(bullet);
@@ -64,11 +64,10 @@ fn format_group_header(rule: &Rule) -> String {
     let mut bullets = predicate_lines(rule);
     bullets.extend(action_lines(rule));
 
-    let mut out = String::from(
-        "Group header — these defaults apply to every rule inside the braces (unless the rule overrides them):",
-    );
+    let mut out =
+        String::from("规则分组头部 — 以下默认属性将应用于花括号内的所有规则（除非单条规则覆盖）：");
     if bullets.is_empty() {
-        out.push_str("\n  (no defaults set)");
+        out.push_str("\n  (未设置默认属性)");
     } else {
         for bullet in &bullets {
             out.push_str("\n  • ");
@@ -85,7 +84,7 @@ fn format_group_header(rule: &Rule) -> String {
 fn predicate_lines(rule: &Rule) -> Vec<String> {
     let mut out = Vec::new();
     if let Some(ref pat) = rule.name_pattern {
-        out.push(format!("Name matches the pattern \"{}\"", pat));
+        out.push(format!("物品名称匹配模式 \"{}\"", pat));
     }
     if !rule.tiers.is_empty() {
         out.push(tier_bullet(&rule.tiers));
@@ -97,10 +96,10 @@ fn predicate_lines(rule: &Rule) -> Vec<String> {
         out.push(unique_kind_bullet(&rule.unique_kinds));
     }
     if rule.ethereal {
-        out.push("Item is ethereal".to_string());
+        out.push("物品为无形 (Ethereal)".to_string());
     }
     if rule.quest {
-        out.push("Item is a quest item".to_string());
+        out.push("物品为任务物品".to_string());
     }
     if !rule.stat_patterns.is_empty() {
         out.push(stat_bullet(&rule.stat_patterns));
@@ -110,74 +109,74 @@ fn predicate_lines(rule: &Rule) -> Vec<String> {
 
 fn tier_bullet(tiers: &[ItemTier]) -> String {
     if tiers.len() == 1 {
-        format!("Tier is {}", tier_label(tiers[0]))
+        format!("阶级为 {}", tier_label(tiers[0]))
     } else {
         let labels: Vec<&str> = tiers.iter().map(|t| tier_label(*t)).collect();
-        format!("Tier is one of: {}", labels.join(", "))
+        format!("阶级为以下之一：{}", labels.join(", "))
     }
 }
 
 fn quality_bullet(qualities: &[ItemQuality]) -> String {
     if qualities.len() == 1 {
-        format!("Quality is {}", quality_label(qualities[0]))
+        format!("品质为 {}", quality_label(qualities[0]))
     } else {
         let labels: Vec<&str> = qualities.iter().map(|q| quality_label(*q)).collect();
-        format!("Quality is one of: {}", labels.join(", "))
+        format!("品质为以下之一：{}", labels.join(", "))
     }
 }
 
 fn unique_kind_bullet(kinds: &[UniqueKind]) -> String {
     if kinds.len() == 1 {
-        format!("Rarity is {}", kinds[0].label())
+        format!("稀有度为 {}", kinds[0].label())
     } else {
         let labels: Vec<&str> = kinds.iter().map(|k| k.label()).collect();
-        format!("Rarity is one of: {}", labels.join(", "))
+        format!("稀有度为以下之一：{}", labels.join(", "))
     }
 }
 
 fn stat_bullet(patterns: &[String]) -> String {
     if patterns.len() == 1 {
-        format!("Has stat pattern: \"{}\"", patterns[0])
+        format!("包含词条模式：\"{}\"", patterns[0])
     } else {
         let quoted: Vec<String> = patterns.iter().map(|p| format!("\"{}\"", p)).collect();
-        format!("Has all stat patterns: {}", quoted.join(", "))
+        format!("包含全部词条模式：{}", quoted.join(", "))
     }
 }
 
 fn unrestricted_categories(rule: &Rule) -> Option<String> {
     let mut missing: Vec<&str> = Vec::new();
     if rule.name_pattern.is_none() {
-        missing.push("name");
+        missing.push("名称");
     }
     if rule.tiers.is_empty() {
-        missing.push("tier");
+        missing.push("阶级");
     }
     if rule.qualities.is_empty() {
-        missing.push("quality");
+        missing.push("品质");
     }
     if rule.unique_kinds.is_empty() {
-        missing.push("rarity");
+        missing.push("稀有度");
     }
     if !rule.ethereal {
-        missing.push("ethereal");
+        missing.push("无形");
     }
     if !rule.quest {
-        missing.push("quest");
+        missing.push("任务物品");
     }
     if rule.stat_patterns.is_empty() {
-        missing.push("stats");
+        missing.push("词条");
     }
     let list = match missing.len() {
         0 => return None,
         1 => missing[0].to_string(),
-        2 => format!("{} and {}", missing[0], missing[1]),
+        2 => format!("{} 与 {}", missing[0], missing[1]),
         _ => format!(
-            "{}, and {}",
-            missing[..missing.len() - 1].join(", "),
+            "{} 以及 {}",
+            missing[..missing.len() - 1].join("、"),
             missing.last().unwrap()
         ),
     };
-    Some(format!("(Other categories — {} — are unrestricted.)", list))
+    Some(format!("(其他类别 — {} — 不受限制。)", list))
 }
 
 // =====================================================================
@@ -187,10 +186,8 @@ fn unrestricted_categories(rule: &Rule) -> Option<String> {
 fn visibility_line(v: Visibility) -> Option<String> {
     match v {
         Visibility::Default => None,
-        Visibility::Hide => Some("Hide the item on the ground".to_string()),
-        Visibility::Show => {
-            Some("Force-show the item (overrides the game's built-in hide)".to_string())
-        }
+        Visibility::Hide => Some("在地面隐藏此物品".to_string()),
+        Visibility::Show => Some("强制显示此物品（覆盖游戏内置隐藏）".to_string()),
     }
 }
 
@@ -202,15 +199,13 @@ fn action_lines(rule: &Rule) -> Vec<String> {
     if rule.notify {
         out.push(notification_bullet(rule));
     } else if rule.color.is_some() || rule.sound.is_some() {
-        out.push(
-            "Color/sound flags are set but no notification will fire — needs 'notify'.".to_string(),
-        );
+        out.push("已设置颜色/音效标记，但未配置 'notify'，因此不会触发提醒。".to_string());
     }
     if rule.map {
-        out.push("Drop a marker on the automap at the item's position".to_string());
+        out.push("在小地图对应位置标记物品".to_string());
     }
     if rule.display_stats && !rule.notify {
-        out.push("'stat' flag is set but won't show — needs 'notify' to fire.".to_string());
+        out.push("已设置 'stat' 标记但不会显示 — 需要配合 'notify' 触发。".to_string());
     }
     out
 }
@@ -218,20 +213,20 @@ fn action_lines(rule: &Rule) -> Vec<String> {
 fn notification_bullet(rule: &Rule) -> String {
     let mut parts: Vec<String> = Vec::new();
     if let Some(c) = rule.color {
-        parts.push(format!("color: {}", color_label(c)));
+        parts.push(format!("颜色: {}", color_label(c)));
     }
     match rule.sound {
-        Some(0) => parts.push("silent".to_string()),
-        Some(n) => parts.push(format!("sound {}", n)),
+        Some(0) => parts.push("静音".to_string()),
+        Some(n) => parts.push(format!("音效 {}", n)),
         None => {}
     }
     if rule.display_stats || !rule.stat_patterns.is_empty() {
-        parts.push("includes item stats".to_string());
+        parts.push("包含物品词条".to_string());
     }
     if parts.is_empty() {
-        "Show overlay notification".to_string()
+        "显示悬浮窗掉落通知".to_string()
     } else {
-        format!("Show overlay notification ({})", parts.join(", "))
+        format!("显示悬浮窗掉落通知 ({})", parts.join(", "))
     }
 }
 
@@ -241,45 +236,45 @@ fn notification_bullet(rule: &Rule) -> String {
 
 fn quality_label(q: ItemQuality) -> &'static str {
     match q {
-        ItemQuality::Inferior => "low",
-        ItemQuality::Normal => "normal",
-        ItemQuality::Superior => "superior",
-        ItemQuality::Magic => "magic",
-        ItemQuality::Set => "set",
-        ItemQuality::Rare => "rare",
-        ItemQuality::Unique => "unique",
-        ItemQuality::Crafted => "crafted",
-        ItemQuality::Honorific => "honorific",
+        ItemQuality::Inferior => "劣质 (low)",
+        ItemQuality::Normal => "普通 (normal)",
+        ItemQuality::Superior => "超强 (superior)",
+        ItemQuality::Magic => "魔法 (magic)",
+        ItemQuality::Set => "套装 (set)",
+        ItemQuality::Rare => "稀有 (rare)",
+        ItemQuality::Unique => "暗金 (unique)",
+        ItemQuality::Crafted => "手工 (crafted)",
+        ItemQuality::Honorific => "光荣 (honorific)",
     }
 }
 
 fn tier_label(t: ItemTier) -> &'static str {
     match t {
         ItemTier::Tier0 => "0",
-        ItemTier::Tier1 => "1",
-        ItemTier::Tier2 => "2",
-        ItemTier::Tier3 => "3",
-        ItemTier::Tier4 => "4",
-        ItemTier::Sacred => "sacred",
-        ItemTier::Angelic => "angelic",
-        ItemTier::Master => "mastercrafted",
+        ItemTier::Tier1 => "1阶",
+        ItemTier::Tier2 => "2阶",
+        ItemTier::Tier3 => "3阶",
+        ItemTier::Tier4 => "4阶",
+        ItemTier::Sacred => "神圣 (sacred)",
+        ItemTier::Angelic => "天使 (angelic)",
+        ItemTier::Master => "匠品 (mastercrafted)",
     }
 }
 
 fn color_label(c: NotifyColor) -> &'static str {
     match c {
-        NotifyColor::White => "white",
-        NotifyColor::Red => "red",
-        NotifyColor::Lime => "lime",
-        NotifyColor::Blue => "blue",
-        NotifyColor::Gold => "gold",
-        NotifyColor::Grey => "grey",
-        NotifyColor::Black => "black",
-        NotifyColor::Pink => "pink",
-        NotifyColor::Orange => "orange",
-        NotifyColor::Yellow => "yellow",
-        NotifyColor::Green => "green",
-        NotifyColor::Purple => "purple",
+        NotifyColor::White => "白色",
+        NotifyColor::Red => "红色",
+        NotifyColor::Lime => "浅绿",
+        NotifyColor::Blue => "蓝色",
+        NotifyColor::Gold => "暗金",
+        NotifyColor::Grey => "灰色",
+        NotifyColor::Black => "黑色",
+        NotifyColor::Pink => "粉色",
+        NotifyColor::Orange => "橙色",
+        NotifyColor::Yellow => "黄色",
+        NotifyColor::Green => "绿色",
+        NotifyColor::Purple => "紫色",
     }
 }
 

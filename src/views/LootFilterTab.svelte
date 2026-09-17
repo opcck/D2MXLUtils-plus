@@ -220,9 +220,9 @@
         class:error={validationStatus === 'error'}
       >
         {#if validationStatus === 'valid'}
-          ✓ {ruleCount} {ruleCount === 1 ? 'rule' : 'rules'}
+          ✓ {ruleCount} 条规则
         {:else if validationStatus === 'error'}
-          ✗ {errorCount} {errorCount === 1 ? 'error' : 'errors'}
+          ✗ {errorCount} 处错误
         {:else}
           —
         {/if}
@@ -230,18 +230,15 @@
       <span
         class="default-mode-badge"
         class:hide={hideAll}
-        title="Add 'hide default' at the top of the file to hide all unmatched items by default."
+        title="在文件顶部添加 'hide default' 可默认隐藏所有未匹配物品。"
       >
-        Default: {hideAll ? 'hide' : 'show'} unmatched
+        默认：{hideAll ? '隐藏' : '显示'}未匹配物品
       </span>
     </div>
 
     <div class="header-actions">
-      <span
-        class="show-matches-toggle"
-        title="Flash the rule line that decided each drop as it happens"
-      >
-        <Toggle checked={showMatches} label="Show matches" onchange={handleShowMatchesChange} />
+      <span class="show-matches-toggle" title="掉落发生时，闪烁高亮匹配到该物品的规则行">
+        <Toggle checked={showMatches} label="显示实时匹配" onchange={handleShowMatchesChange} />
       </span>
 
       {#if saveState === 'error'}
@@ -249,9 +246,9 @@
           type="button"
           class="save-status error"
           onclick={retrySave}
-          title={saveError ?? 'Save failed'}
+          title={saveError ?? '保存失败'}
         >
-          ⚠ Save failed — retry
+          ⚠ 保存失败 — 重试
         </button>
       {:else}
         <span
@@ -262,13 +259,13 @@
           class:saving={saveState === 'saving'}
         >
           {#if saveState === 'saved'}
-            ✓ Saved
+            ✓ 已保存
           {:else if saveState === 'unsaved'}
-            ● Unsaved
+            ● 未保存
           {:else if saveState === 'invalid'}
-            ⚠ Unsaved — fix errors
+            ⚠ 未保存 — 存在语法错误
           {:else if saveState === 'saving'}
-            … Saving
+            … 正在保存
           {/if}
         </span>
       {/if}
@@ -295,169 +292,178 @@
 
   <div class="syntax-help">
     <details>
-      <summary>Syntax Reference</summary>
+      <summary>语法参考指南</summary>
       <div class="help-content">
-        <p>Rule format (all parts optional — rules are matched last-wins):</p>
+        <p>规则语法格式（所有部分均为可选 — 规则按从上到下最后命中的生效）：</p>
         <code
-          >["name"] [quality] [tier] [sockets] [level] [class] [eth] &#123;stat&#125; [color]
-          [show|hide] [sound] [notify] [stat] [map]</code
+          >["名称"] [品质] [阶级] [凹槽] [等级限制] [职业] [eth] &#123;属性正则&#125; [颜色]
+          [show|hide] [音效] [notify] [stat] [map]</code
         >
 
         <div class="help-columns">
           <div class="help-column">
-            <h4>Quality</h4>
+            <h4>品质 (Quality)</h4>
             <ul>
               <li>
-                <span class="kw-quality">unique</span>, <span class="kw-quality">set</span>,
-                <span class="kw-quality">rare</span>
+                <span class="kw-quality">unique</span> (暗金), <span class="kw-quality">set</span>
+                (套装),
+                <span class="kw-quality">rare</span> (亮金)
               </li>
               <li>
-                <span class="kw-quality">magic</span>, <span class="kw-quality">craft</span>,
-                <span class="kw-quality">honor</span>
+                <span class="kw-quality">magic</span> (蓝色魔法),
+                <span class="kw-quality">craft</span>
+                (手工),
+                <span class="kw-quality">honor</span> (荣誉)
               </li>
               <li>
-                <span class="kw-quality">normal</span>, <span class="kw-quality">low</span>,
-                <span class="kw-quality">superior</span>
+                <span class="kw-quality">normal</span> (普通), <span class="kw-quality">low</span>
+                (劣质),
+                <span class="kw-quality">superior</span> (超强)
               </li>
               <li>
                 <span class="kw-quality">tu</span>, <span class="kw-quality">su</span>,
                 <span class="kw-quality">ssu</span>, <span class="kw-quality">sssu</span>
-                (unique rarity tiers)
+                (暗金稀有阶级)
               </li>
             </ul>
           </div>
 
           <div class="help-column">
-            <h4>Tier</h4>
+            <h4>阶级 (Tier)</h4>
             <ul>
               <li>
-                <span class="kw-tier">sacred</span>,
-                <span class="kw-tier">angelic</span>,
-                <span class="kw-tier">master</span>
+                <span class="kw-tier">sacred</span> (神圣),
+                <span class="kw-tier">angelic</span> (天使),
+                <span class="kw-tier">master</span> (宗师)
               </li>
               <li>
                 <span class="kw-tier">0</span>,
                 <span class="kw-tier">1</span>,
                 <span class="kw-tier">2</span>,
                 <span class="kw-tier">3</span>,
-                <span class="kw-tier">4</span>
+                <span class="kw-tier">4</span> (阶级1~4)
               </li>
             </ul>
           </div>
 
           <div class="help-column">
-            <h4>Sockets</h4>
+            <h4>凹槽 (Sockets)</h4>
             <ul>
-              <li><span class="kw-socket">sockets0</span> (no sockets)</li>
+              <li><span class="kw-socket">sockets0</span> (无凹槽)</li>
               <li>
                 <span class="kw-socket">sockets1</span> -
-                <span class="kw-socket">sockets6</span>
+                <span class="kw-socket">sockets6</span> (1~6孔)
               </li>
             </ul>
           </div>
 
           <div class="help-column">
-            <h4>Level</h4>
+            <h4>等级限制 (Level)</h4>
             <ul>
               <li>
                 <span class="kw-level">min_clvl20</span>,
-                <span class="kw-level">max_clvl99</span> (char level)
+                <span class="kw-level">max_clvl99</span> (角色等级)
               </li>
               <li>
                 <span class="kw-level">min_ilvl40</span>,
-                <span class="kw-level">max_ilvl99</span> (item level)
+                <span class="kw-level">max_ilvl99</span> (物品等级)
               </li>
             </ul>
           </div>
 
           <div class="help-column">
-            <h4>Class</h4>
+            <h4>职业限定 (Class)</h4>
             <ul>
               <li>
-                <span class="kw-class">amazon</span> (<span class="kw-class">zon</span>),
-                <span class="kw-class">sorceress</span> (<span class="kw-class">sorc</span>)
+                <span class="kw-class">amazon</span> (<span class="kw-class">zon</span> 亚马逊),
+                <span class="kw-class">sorceress</span> (<span class="kw-class">sorc</span> 法师)
               </li>
               <li>
-                <span class="kw-class">necromancer</span> (<span class="kw-class">necro</span>),
+                <span class="kw-class">necromancer</span> (<span class="kw-class">necro</span>
+                死灵),
                 <span class="kw-class">paladin</span> (<span class="kw-class">pal</span>,
-                <span class="kw-class">pally</span>)
+                <span class="kw-class">pally</span> 圣骑士)
               </li>
               <li>
-                <span class="kw-class">barbarian</span> (<span class="kw-class">barb</span>),
-                <span class="kw-class">druid</span> (<span class="kw-class">dru</span>)
+                <span class="kw-class">barbarian</span> (<span class="kw-class">barb</span> 野蛮人),
+                <span class="kw-class">druid</span> (<span class="kw-class">dru</span> 德鲁伊)
               </li>
               <li>
-                <span class="kw-class">assassin</span> (<span class="kw-class">sin</span>)
+                <span class="kw-class">assassin</span> (<span class="kw-class">sin</span> 刺客)
               </li>
             </ul>
           </div>
 
           <div class="help-column">
-            <h4>Colors</h4>
+            <h4>通知颜色 (Colors)</h4>
             <ul>
               <li>
-                <span class="kw-c-gold">gold</span>,
-                <span class="kw-c-lime">lime</span>,
-                <span class="kw-c-red">red</span>,
-                <span class="kw-c-blue">blue</span>
+                <span class="kw-c-gold">gold</span> (金色),
+                <span class="kw-c-lime">lime</span> (亮绿),
+                <span class="kw-c-red">red</span> (红色),
+                <span class="kw-c-blue">blue</span> (蓝色)
               </li>
               <li>
-                <span class="kw-c-white">white</span>,
-                <span class="kw-c-yellow">yellow</span>,
-                <span class="kw-c-orange">orange</span>,
-                <span class="kw-c-pink">pink</span>
+                <span class="kw-c-white">white</span> (白色),
+                <span class="kw-c-yellow">yellow</span> (黄色),
+                <span class="kw-c-orange">orange</span> (橙色),
+                <span class="kw-c-pink">pink</span> (粉色)
               </li>
               <li>
-                <span class="kw-c-grey">grey</span>,
-                <span class="kw-c-black">black</span>,
-                <span class="kw-c-purple">purple</span>,
-                <span class="kw-c-green">green</span>
+                <span class="kw-c-grey">grey</span> (灰色),
+                <span class="kw-c-black">black</span> (黑色),
+                <span class="kw-c-purple">purple</span> (紫色),
+                <span class="kw-c-green">green</span> (绿色)
               </li>
             </ul>
           </div>
 
           <div class="help-column">
-            <h4>Action / Notification</h4>
+            <h4>动作 / 通知 (Action / Notification)</h4>
             <ul>
-              <li><span class="kw-action">show</span>, <span class="kw-action">hide</span></li>
-              <li><span class="kw-notification">notify</span> (required for alerts)</li>
-              <li><span class="kw-notification">map</span> (automap marker)</li>
+              <li>
+                <span class="kw-action">show</span> (显示), <span class="kw-action">hide</span> (隐藏)
+              </li>
+              <li><span class="kw-notification">notify</span> (触发掉落通知弹窗)</li>
+              <li><span class="kw-notification">map</span> (在游戏小地图标记红十字)</li>
             </ul>
           </div>
 
           <div class="help-column">
-            <h4>Sounds</h4>
+            <h4>掉落音效 (Sounds)</h4>
             <ul>
               <li>
                 <span class="kw-notification">sound1</span> -
-                <span class="kw-notification">sound7</span>
+                <span class="kw-notification">sound7</span> (音效槽位1~7)
               </li>
-              <li><span class="kw-notification">sound_none</span></li>
+              <li><span class="kw-notification">sound_none</span> (静音)</li>
             </ul>
           </div>
         </div>
 
         <p class="help-note">
-          <strong><span class="kw-ethereal">eth</span></strong> — match ethereal items only<br />
-          <strong><span class="kw-ethereal">quest</span></strong> — match quest items only<br />
-          <strong><span class="kw-notification">stat</span></strong> — include item stats in the
-          notification<br />
-          <strong><span class="kw-notification">map</span></strong> — drop a red-cross marker on the
-          in-game automap at the item's location (independent of
-          <span class="kw-notification">notify</span>)<br />
-          <strong><span class="kw-stat">&#123;pattern&#125;</span></strong> — regex match on stat
-          text<br />
-          <strong>Groups:</strong>
+          <strong><span class="kw-ethereal">eth</span></strong> — 仅匹配无形物品<br />
+          <strong><span class="kw-ethereal">quest</span></strong> — 仅匹配任务物品<br />
+          <strong><span class="kw-notification">stat</span></strong> — 在通知弹窗中包含物品词条属性<br
+          />
+          <strong><span class="kw-notification">map</span></strong> —
+          在游戏内小地图掉落位置绘制红十字标记（独立于
+          <span class="kw-notification">notify</span>）<br />
+          <strong><span class="kw-stat">&#123;pattern&#125;</span></strong> —
+          正则表达式匹配物品属性词条<br />
+          <strong>规则分组：</strong>
           <code class="inline-code"
             >[<span class="kw-quality">unique</span> <span class="kw-c-gold">gold</span>
             <span class="kw-notification">notify</span>] &#123;
             <span class="kw-name">"Jordan"</span> <span class="kw-name">"Mara"</span> &#125;</code
           >
-          — shared attributes for each rule inside<br />
-          <strong>Default mode:</strong> place <code class="inline-code">hide default</code> (or
-          <code class="inline-code">show default</code>) on its own line at the top of the file.
-          With <code class="inline-code">hide default</code>, only rules with
-          <span class="kw-action">show</span> reveal items.
+          — 大括号内每条规则继承方括号中的默认属性<br />
+          <strong>默认模式：</strong> 在文件顶部单独写一行
+          <code class="inline-code">hide default</code>（或
+          <code class="inline-code">show default</code>）。 设置为
+          <code class="inline-code">hide default</code>
+          时，只有显式指定了
+          <span class="kw-action">show</span> 的规则才会显示在地面上。
         </p>
       </div>
     </details>

@@ -107,20 +107,20 @@
   bind:this={panelEl}
   use:clickOutside={onClose}
   role="dialog"
-  aria-label="Loot history"
+  aria-label="掉落历史"
   style:top="{pos.y}%"
   style:left="{pos.x}%"
 >
   <header use:dragWindow={{ target: () => panelEl, onMove: moveWindow }}>
-    <h2>Loot History</h2>
+    <h2>掉落历史</h2>
     <div class="header-actions">
       <button
         type="button"
         class="clear-btn"
         onclick={() => lootHistoryStore.clear()}
-        aria-label="Clear history">Clear</button
+        aria-label="清空历史">清空</button
       >
-      <button type="button" class="close" onclick={onClose} aria-label="Close">×</button>
+      <button type="button" class="close" onclick={onClose} aria-label="关闭">×</button>
     </div>
   </header>
   <div class="list" bind:this={scrollContainer} onscroll={onScroll}>
@@ -132,7 +132,7 @@
       </div>
     {/each}
     {#if lootHistoryStore.entries.length === 0}
-      <div class="empty">No drops in this session yet.</div>
+      <div class="empty">当前会话暂无掉落记录。</div>
     {/if}
   </div>
 </div>

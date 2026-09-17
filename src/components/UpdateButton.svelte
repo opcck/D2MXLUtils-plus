@@ -31,23 +31,23 @@
 {#if state.kind === 'available'}
   <button class="update-pill available" onclick={handleClick}>
     <span class="dot" aria-hidden="true"></span>
-    Update v{state.latest}
+    发现新版本 v{state.latest}
   </button>
 {:else if state.kind === 'downloading'}
   <button class="update-pill downloading" disabled>
     <span class="shimmer" aria-hidden="true"></span>
-    <span class="label">Downloading {formatBytes(state.downloaded)}</span>
+    <span class="label">下载中 {formatBytes(state.downloaded)}</span>
   </button>
 {:else if state.kind === 'ready'}
-  <button class="update-pill ready" onclick={handleClick}> Restart </button>
+  <button class="update-pill ready" onclick={handleClick}> 重启并更新 </button>
 {:else if state.kind === 'error' && state.phase === 'install'}
   <button
     class="update-pill error"
     onclick={handleManualDownload}
-    title={`Update failed: ${state.message}`}
+    title={`更新失败: ${state.message}`}
   >
     <span class="warn" aria-hidden="true">!</span>
-    Update failed — Download manually
+    更新失败 — 点击手动下载
   </button>
 {/if}
 

@@ -276,7 +276,7 @@
         activeEntity = 'player';
       }}
     >
-      Player
+      玩家角色
     </button>
     <button
       class="entity-btn"
@@ -285,7 +285,7 @@
         activeEntity = 'merc';
       }}
     >
-      Mercenary
+      雇佣兵
     </button>
   </div>
 
@@ -293,7 +293,7 @@
     <div class="control-row">
       {#if activeEntity === 'player'}
         <label>
-          <span class="label">Class</span>
+          <span class="label">职业</span>
           <Select
             value={overrideClass ?? livePlayer?.class ?? 0}
             options={CLASSES.map((cls, i) => ({ value: i, label: cls.name }))}
@@ -304,11 +304,11 @@
         </label>
 
         <label>
-          <span class="label">Morph</span>
+          <span class="label">变身形态</span>
           <Select
             value={overrideMorph ?? ''}
             options={[
-              { value: '', label: 'None' },
+              { value: '', label: '无 (原形态)' },
               ...MORPHS.map((morph) => ({ value: morph.token, label: morph.name })),
             ]}
             onchange={(v) => {
@@ -318,7 +318,7 @@
         </label>
       {:else}
         <label>
-          <span class="label">Mercenary</span>
+          <span class="label">雇佣兵类型</span>
           <Select
             value={overrideMercType ?? liveMerc?.merc_type ?? 0}
             options={MERCS.map((merc) => ({ value: merc.id, label: merc.name }))}
@@ -330,7 +330,7 @@
       {/if}
 
       <label>
-        <span class="label">Weapon Type</span>
+        <span class="label">武器类别</span>
         <Select
           value={effectiveWeaponToken}
           options={availableWeapons.map((wt) => ({ value: wt.token, label: wt.name }))}
@@ -340,7 +340,7 @@
 
       {#if availableBases.length > 0}
         <label>
-          <span class="label">Weapon Base</span>
+          <span class="label">武器底模</span>
           <Select
             value={effectiveBase?.file_index ?? -1}
             options={availableBases.map((base) => ({ value: base.file_index, label: base.name }))}
@@ -350,7 +350,7 @@
       {/if}
 
       <label>
-        <span class="label">Debuff</span>
+        <span class="label">减速状态</span>
         <Select
           value={activeEntity === 'player' ? debuffIndex : mercDebuffIndex}
           options={DEBUFFS.map((debuff, i) => ({
@@ -370,7 +370,7 @@
 
     <div class="control-row">
       <label>
-        <span class="label">IAS</span>
+        <span class="label">攻击速度 (IAS)</span>
         <input
           type="number"
           placeholder={(activeEntity === 'player' ? livePlayer?.ias : liveMerc?.ias)?.toString() ??
@@ -383,7 +383,7 @@
         />
       </label>
       <label>
-        <span class="label">FCR</span>
+        <span class="label">施法速度 (FCR)</span>
         <input
           type="number"
           placeholder={(activeEntity === 'player' ? livePlayer?.fcr : liveMerc?.fcr)?.toString() ??
@@ -396,7 +396,7 @@
         />
       </label>
       <label>
-        <span class="label">FHR</span>
+        <span class="label">击中回复 (FHR)</span>
         <input
           type="number"
           placeholder={(activeEntity === 'player' ? livePlayer?.fhr : liveMerc?.fhr)?.toString() ??
@@ -409,7 +409,7 @@
         />
       </label>
       <label>
-        <span class="label">FBR</span>
+        <span class="label">格挡速度 (FBR)</span>
         <input
           type="number"
           placeholder={(activeEntity === 'player' ? livePlayer?.fbr : liveMerc?.fbr)?.toString() ??
@@ -431,7 +431,7 @@
               isDualWielding = e.currentTarget.checked;
             }}
           />
-          <span class="label">Dual Wielding</span>
+          <span class="label">双持武器</span>
         </label>
       {/if}
 
@@ -444,7 +444,7 @@
               isThrowing = e.currentTarget.checked;
             }}
           />
-          <span class="label">Throwing</span>
+          <span class="label">投掷模式</span>
         </label>
       {/if}
     </div>
@@ -465,16 +465,16 @@
       <div class="bp-table">
         <h3 class="bp-title">
           {ANIM_TYPE_LABELS[bpTable.animType]}
-          <span class="bp-current">Current: {bpTable.currentFpa} FPA</span>
+          <span class="bp-current">当前: {bpTable.currentFpa} 帧 (FPA)</span>
           {#if bpTable.delta !== null}
-            <span class="bp-delta">+{bpTable.delta} to next</span>
+            <span class="bp-delta">距离下档还需 +{bpTable.delta}</span>
           {/if}
         </h3>
         <table>
           <thead>
             <tr>
-              <th>FPA</th>
-              <th>Required</th>
+              <th>帧数 (FPA)</th>
+              <th>所需数值</th>
             </tr>
           </thead>
           <tbody>
@@ -492,9 +492,9 @@
       </div>
     {:else}
       {#if speedcalcTable}
-        <p class="no-data">No breakpoint data available for this combination.</p>
+        <p class="no-data">此组合暂无档位数据。</p>
       {:else if !loadError}
-        <p class="no-data">Loading breakpoint data...</p>
+        <p class="no-data">正在加载档位数据...</p>
       {/if}
     {/each}
   </div>
