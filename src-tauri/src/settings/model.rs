@@ -213,6 +213,43 @@ pub struct AppSettings {
     /// Whether scene and unit shadows are removed.
     #[serde(default = "default_remove_shadows")]
     pub remove_shadows: bool,
+
+    /// Auto potion configuration (slots, thresholds, keys)
+    #[serde(default = "default_auto_potion")]
+    pub auto_potion: AutoPotionSettings,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AutoPotionTarget {
+    Hp,
+    Mana,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoPotionSlotConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_potion_target_hp")]
+    pub target: AutoPotionTarget,
+    #[serde(default = "default_potion_threshold_50")]
+    pub threshold_percent: u32,
+    #[serde(default = "default_potion_key_code_1")]
+    pub key_code: u32,
+    #[serde(default = "default_potion_key_display_1")]
+    pub key_display: String,
+    #[serde(default = "default_potion_cooldown_ms")]
+    pub cooldown_ms: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoPotionSettings {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_auto_potion_slots")]
+    pub slots: Vec<AutoPotionSlotConfig>,
 }
 
 /// Window state for persistence
@@ -365,7 +402,64 @@ impl Default for AppSettings {
             continuous_attack: default_continuous_attack(),
             auto_belt: default_auto_belt(),
             remove_shadows: default_remove_shadows(),
+            auto_potion: default_auto_potion(),
         }
+    }
+}
+
+fn default_potion_target_hp() -> AutoPotionTarget {
+    AutoPotionTarget::Hp
+}
+
+fn default_potion_threshold_50() -> u32 {
+    50
+}
+
+fn default_potion_key_code_1() -> u32 {
+    0x31 // '1'
+}
+
+fn default_potion_key_display_1() -> String {
+    "1".to_string()
+}
+
+fn default_potion_cooldown_ms() -> u32 {
+    600
+}
+
+fn default_auto_potion_slots() -> Vec<AutoPotionSlotConfig> {
+    vec![
+        AutoPotionSlotConfig {
+            enabled: true,
+            target: AutoPotionTarget::Hp,
+            threshold_percent: 35,
+            key_code: 0x31,
+            key_display: "1".to_string(),
+            cooldown_ms: 600,
+        },
+        AutoPotionSlotConfig {
+            enabled: true,
+            target: AutoPotionTarget::Hp,
+            threshold_percent: 65,
+            key_code: 0x32,
+            key_display: "2".to_string(),
+            cooldown_ms: 600,
+        },
+        AutoPotionSlotConfig {
+            enabled: true,
+            target: AutoPotionTarget::Mana,
+            threshold_percent: 25,
+            key_code: 0x33,
+            key_display: "3".to_string(),
+            cooldown_ms: 600,
+        },
+    ]
+}
+
+fn default_auto_potion() -> AutoPotionSettings {
+    AutoPotionSettings {
+        enabled: true,
+        slots: default_auto_potion_slots(),
     }
 }
 

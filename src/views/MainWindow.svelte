@@ -19,6 +19,7 @@
     BreakpointsTab,
     StatsTab,
     SoundsTab,
+    AssistTab,
   } from './index';
 
   // Scanner and game status from backend
@@ -30,6 +31,7 @@
 
   const tabs = [
     { id: 'general', label: '常规设置' },
+    { id: 'assist', label: '辅助功能' },
     { id: 'lootfilter', label: '掉落过滤' },
     { id: 'notifications', label: '通知提醒' },
     { id: 'sounds', label: '音效设置' },
@@ -213,6 +215,8 @@
       {#snippet children(tab)}
         {#if tab === 'general'}
           <GeneralTab />
+        {:else if tab === 'assist'}
+          <AssistTab />
         {:else if tab === 'lootfilter'}
           <LootFilterTab />
         {:else if tab === 'notifications'}

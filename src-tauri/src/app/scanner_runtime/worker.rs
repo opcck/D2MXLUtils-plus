@@ -750,6 +750,15 @@ pub(super) fn start_scanner_internal(
                     if let Some(auto_belt_state) = app_handle.try_state::<crate::auto_belt::AutoBeltState>() {
                         auto_belt_state.tick(&shared_state.ctx, &shared_state.injector);
                     }
+
+                    #[cfg(any(target_os = "windows", target_os = "linux"))]
+                    if let Some(auto_potion_state) = app_handle.try_state::<crate::auto_potion::AutoPotionState>() {
+                        if let Some(vitals) = crate::auto_potion::tick_auto_potion(&shared_state.ctx, &auto_potion_state) {
+                            if stats_tick_counter == 0 {
+                                let _ = app_handle.emit("player-vitals-update", &vitals);
+                            }
+                        }
+                    }
                 }
 
                 #[cfg(any(target_os = "windows", target_os = "linux"))]

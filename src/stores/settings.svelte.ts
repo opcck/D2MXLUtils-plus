@@ -114,6 +114,23 @@ export interface AppSettings {
   continuousAttack: boolean;
   autoBelt: boolean;
   removeShadows: boolean;
+  autoPotion: AutoPotionSettings;
+}
+
+export type AutoPotionTarget = 'hp' | 'mana';
+
+export interface AutoPotionSlotConfig {
+  enabled: boolean;
+  target: AutoPotionTarget;
+  thresholdPercent: number;
+  keyCode: number;
+  keyDisplay: string;
+  cooldownMs: number;
+}
+
+export interface AutoPotionSettings {
+  enabled: boolean;
+  slots: AutoPotionSlotConfig[];
 }
 
 /** Window state interface */
@@ -211,6 +228,35 @@ const DEFAULT_SETTINGS: AppSettings = {
   continuousAttack: true,
   autoBelt: true,
   removeShadows: false,
+  autoPotion: {
+    enabled: true,
+    slots: [
+      {
+        enabled: true,
+        target: 'hp',
+        thresholdPercent: 35,
+        keyCode: 0x31,
+        keyDisplay: '1',
+        cooldownMs: 600,
+      },
+      {
+        enabled: true,
+        target: 'hp',
+        thresholdPercent: 65,
+        keyCode: 0x32,
+        keyDisplay: '2',
+        cooldownMs: 600,
+      },
+      {
+        enabled: true,
+        target: 'mana',
+        thresholdPercent: 25,
+        keyCode: 0x33,
+        keyDisplay: '3',
+        cooldownMs: 600,
+      },
+    ],
+  },
 };
 
 /** Settings store singleton */
@@ -629,6 +675,15 @@ class SettingsStore {
       await invoke('toggle_remove_shadows', { enabled });
     } catch (error) {
       console.error('[Settings] Failed to toggle remove shadows:', error);
+    }
+  }
+
+  async setAutoPotionSettings(autoPotion: AutoPotionSettings): Promise<void> {
+    this.set('autoPotion', autoPotion);
+    try {
+      await invoke('update_auto_potion_settings', { settings: autoPotion });
+    } catch (error) {
+      console.error('[Settings] Failed to update auto potion settings:', error);
     }
   }
 }

@@ -7,3 +7,4 @@ export { default as NotificationsTab } from './NotificationsTab.svelte';
 export { default as BreakpointsTab } from './BreakpointsTab.svelte';
 export { default as StatsTab } from './StatsTab.svelte';
 export { default as SoundsTab } from './SoundsTab.svelte';
+export { default as AssistTab } from './AssistTab.svelte';

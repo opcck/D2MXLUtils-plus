@@ -14,11 +14,6 @@
   let gameCreatePasswordPrefix = $derived(settingsStore.settings.gameCreatePasswordPrefix);
   let gameCreatePasswordUsePrefix = $derived(settingsStore.settings.gameCreatePasswordUsePrefix);
   let gameCreateDescription = $derived(settingsStore.settings.gameCreateDescription);
-  let radarEnabled = $derived(settingsStore.settings.radarEnabled);
-  let radarShowNormal = $derived(settingsStore.settings.radarShowNormal);
-  let continuousAttack = $derived(settingsStore.settings.continuousAttack);
-  let autoBelt = $derived(settingsStore.settings.autoBelt);
-  let removeShadows = $derived(settingsStore.settings.removeShadows);
 
   const UNBOUND_HOTKEY: HotkeyConfig = { keyCode: 0, modifiers: 0, display: 'None' };
 
@@ -283,26 +278,6 @@
     settingsStore.setGameCreateDescription((e.target as HTMLInputElement).value);
   }
 
-  function handleRadarEnabledChange(enabled: boolean) {
-    settingsStore.setRadarEnabled(enabled);
-  }
-
-  function handleRadarShowNormalChange(enabled: boolean) {
-    settingsStore.setRadarShowNormal(enabled);
-  }
-
-  function handleContinuousAttackChange(enabled: boolean) {
-    settingsStore.setContinuousAttack(enabled);
-  }
-
-  function handleAutoBeltChange(enabled: boolean) {
-    settingsStore.setAutoBelt(enabled);
-  }
-
-  function handleRemoveShadowsChange(enabled: boolean) {
-    settingsStore.setRemoveShadows(enabled);
-  }
-
   let showChangelog = $state(false);
   let changelogHtml = $state('');
 
@@ -480,60 +455,6 @@
         value={gameCreateDescription}
         oninput={handleGameCreateDescriptionInput}
       />
-    </div>
-  </div>
-
-  <div class="settings-section">
-    <h2 class="section-title">游戏增强辅助 (QoL Tweaks)</h2>
-
-    <div class="setting-row">
-      <div class="setting-info">
-        <span class="setting-label">小地图怪物雷达 (Monster Radar)</span>
-        <span class="setting-hint"
-          >在小地图/全屏地图上高亮标记怪物：暗金Boss显示为金色、精英怪显示为紫色、普通怪显示为红点。</span
-        >
-      </div>
-      <Toggle checked={radarEnabled} onchange={handleRadarEnabledChange} />
-    </div>
-
-    {#if radarEnabled}
-      <div class="setting-row">
-        <div class="setting-info">
-          <span class="setting-label">雷达显示普通怪小红点</span>
-          <span class="setting-hint"
-            >关闭后雷达只标记金色暗金怪/Boss和紫色精英怪，保持小地图清爽。</span
-          >
-        </div>
-        <Toggle checked={radarShowNormal} onchange={handleRadarShowNormalChange} />
-      </div>
-    {/if}
-
-    <div class="setting-row">
-      <div class="setting-info">
-        <span class="setting-label">持续攻击不打断 (Continuous Attack)</span>
-        <span class="setting-hint"
-          >按住鼠标攻击或施法时，当前目标怪物死亡后不中断动作，继续朝光标方向连击。</span
-        >
-      </div>
-      <Toggle checked={continuousAttack} onchange={handleContinuousAttackChange} />
-    </div>
-
-    <div class="setting-row">
-      <div class="setting-info">
-        <span class="setting-label">药水自动补充入腰带 (Auto Potion Belt)</span>
-        <span class="setting-hint">腰带存在空位时，自动从背包将药水补充入腰带。</span>
-      </div>
-      <Toggle checked={autoBelt} onchange={handleAutoBeltChange} />
-    </div>
-
-    <div class="setting-row">
-      <div class="setting-info">
-        <span class="setting-label">去除场景与单位阴影 (Remove Shadows)</span>
-        <span class="setting-hint"
-          >关闭游戏内的环境与单位阴影渲染，提升同屏多怪时的帧率与画面清晰度。</span
-        >
-      </div>
-      <Toggle checked={removeShadows} onchange={handleRemoveShadowsChange} />
     </div>
   </div>
 

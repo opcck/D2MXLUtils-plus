@@ -8,6 +8,9 @@ export {
   type SoundSource,
   type DpsMeterSettings,
   type WidgetPosition,
+  type AutoPotionSettings,
+  type AutoPotionSlotConfig,
+  type AutoPotionTarget,
 } from './settings.svelte';
 export { itemsDictionaryStore } from './items-dictionary.svelte';
 export { updaterStore, type UpdaterState } from './updater.svelte';

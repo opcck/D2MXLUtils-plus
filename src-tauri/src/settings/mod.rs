@@ -8,7 +8,8 @@ mod model;
 // Preserve the existing settings type paths, including types without direct consumers.
 #[allow(unused_imports)]
 pub use model::{
-    AppSettings, DpsMeterSettings, SoundSlot, SoundSource, WidgetPosition, WindowState,
+    AppSettings, AutoPotionSettings, AutoPotionSlotConfig, AutoPotionTarget, DpsMeterSettings,
+    SoundSlot, SoundSource, WidgetPosition, WindowState,
 };
 
 use tauri::{AppHandle, Emitter, Manager};
@@ -74,6 +75,10 @@ pub fn save_settings(app: AppHandle, settings: AppSettings) -> Result<(), String
         if let Ok(mut tweak) = state.tweak.lock() {
             tweak.enabled = settings.remove_shadows;
         }
+    }
+
+    if let Some(state) = app.try_state::<crate::auto_potion::AutoPotionState>() {
+        state.update_settings(settings.auto_potion.clone());
     }
 
     if let Err(e) = app.emit("settings-updated", &settings) {

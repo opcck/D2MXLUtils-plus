@@ -2,6 +2,7 @@
 
 mod app;
 mod auto_belt;
+mod auto_potion;
 mod breakpoints;
 mod combat_tweaks;
 mod d2types;
@@ -257,6 +258,7 @@ fn main() {
             let game_create_autofill_state =
                 game_create::GameCreateAutofillHotkeyState::new(game_status.clone());
             let auto_belt_state = auto_belt::AutoBeltState::new();
+            let auto_potion_state = auto_potion::AutoPotionState::new();
             let combat_tweaks_state = combat_tweaks::CombatTweaksState::new();
             let monster_radar_state = monster_radar::MonsterRadarState::new();
             let shadow_tweak_state = shadow_tweak::ShadowTweakState::new();
@@ -315,6 +317,7 @@ fn main() {
                     if let Ok(mut tweak) = shadow_tweak_state.tweak.lock() {
                         tweak.enabled = loaded_settings.remove_shadows;
                     }
+                    auto_potion_state.update_settings(loaded_settings.auto_potion);
                 }
                 Err(e) => {
                     log_error(&format!("Failed to load settings for hotkeys: {}", e));
@@ -349,6 +352,7 @@ fn main() {
                     if let Ok(mut tweak) = shadow_tweak_state.tweak.lock() {
                         tweak.enabled = defaults.remove_shadows;
                     }
+                    auto_potion_state.update_settings(defaults.auto_potion);
                 }
             }
 
@@ -360,6 +364,7 @@ fn main() {
             app.manage(dps_meter_reset_state);
             app.manage(game_create_autofill_state);
             app.manage(auto_belt_state);
+            app.manage(auto_potion_state);
             app.manage(combat_tweaks_state);
             app.manage(monster_radar_state);
             app.manage(shadow_tweak_state);
@@ -497,7 +502,8 @@ fn main() {
             monster_radar::set_radar_show_normal,
             combat_tweaks::toggle_continuous_attack,
             auto_belt::toggle_auto_belt,
-            shadow_tweak::toggle_remove_shadows
+            shadow_tweak::toggle_remove_shadows,
+            auto_potion::update_auto_potion_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
