@@ -4,9 +4,9 @@ mod api;
 mod capture;
 mod hotkey;
 
-pub(crate) use api::{search_mxl_items, MxlItemApiState, __cmd__search_mxl_items};
+pub(crate) use api::{__cmd__search_mxl_items, search_mxl_items, MxlItemApiState};
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 pub(crate) use capture::HoveredItemHook;
 pub(crate) use hotkey::{
-    update_item_search_hotkey, ItemSearchHotkeyState, __cmd__update_item_search_hotkey,
+    __cmd__update_item_search_hotkey, update_item_search_hotkey, ItemSearchHotkeyState,
 };

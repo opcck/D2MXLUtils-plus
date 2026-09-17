@@ -205,6 +205,31 @@ pub(super) fn start_scanner_internal(
                     log_error(&format!("Hovered-item hook install failed: {}", e));
                 }
 
+                #[cfg(any(target_os = "windows", target_os = "linux"))]
+                if let Some(tweaks_state) = app_handle.try_state::<crate::combat_tweaks::CombatTweaksState>() {
+                    if let Ok(mut tweaks) = tweaks_state.tweaks.lock() {
+                        if tweaks.enabled {
+                            if let Err(e) = tweaks.apply(&shared_state.ctx.process, shared_state.ctx.d2_client) {
+                                log_error(&format!("Failed to apply continuous attack tweak: {}", e));
+                            }
+                        }
+                    }
+                }
+
+                #[cfg(any(target_os = "windows", target_os = "linux"))]
+                if let Some(radar_state) = app_handle.try_state::<crate::monster_radar::MonsterRadarState>() {
+                    if let Ok(mut radar) = radar_state.hook.lock() {
+                        if radar.enabled {
+                            let show_normal = radar.show_normal;
+                            if let Err(e) = radar.inject(&shared_state.ctx.process, shared_state.ctx.d2_sigma) {
+                                log_error(&format!("Failed to inject monster radar: {}", e));
+                            } else if let Err(e) = radar.set_show_normal(&shared_state.ctx.process, show_normal) {
+                                log_error(&format!("Failed to set monster radar show_normal: {}", e));
+                            }
+                        }
+                    }
+                }
+
                 (shared_state, scanner)
             };
 
@@ -706,6 +731,11 @@ pub(super) fn start_scanner_internal(
                         &dps_reset_pending,
                         &mut dps_area_tick_counter,
                     );
+
+                    #[cfg(any(target_os = "windows", target_os = "linux"))]
+                    if let Some(auto_belt_state) = app_handle.try_state::<crate::auto_belt::AutoBeltState>() {
+                        auto_belt_state.tick(&shared_state.ctx, &shared_state.injector);
+                    }
                 }
 
                 #[cfg(any(target_os = "windows", target_os = "linux"))]
@@ -730,6 +760,20 @@ pub(super) fn start_scanner_internal(
 
             #[cfg(any(target_os = "windows", target_os = "linux"))]
             let _ = shared_state.dps_hook.uninstall();
+
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            if let Some(tweaks_state) = app_handle.try_state::<crate::combat_tweaks::CombatTweaksState>() {
+                if let Ok(mut tweaks) = tweaks_state.tweaks.lock() {
+                    let _ = tweaks.restore(&shared_state.ctx.process, shared_state.ctx.d2_client);
+                }
+            }
+
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            if let Some(radar_state) = app_handle.try_state::<crate::monster_radar::MonsterRadarState>() {
+                if let Ok(mut radar) = radar_state.hook.lock() {
+                    let _ = radar.eject(&shared_state.ctx.process);
+                }
+            }
 
             #[cfg(any(target_os = "windows", target_os = "linux"))]
             if let Ok(mut guard) = scanner_shared_state.write() {

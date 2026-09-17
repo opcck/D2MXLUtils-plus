@@ -58,6 +58,15 @@ pub mod d2client {
         /// crashes when invoked from a remote thread in our setup.
         pub const NEW_AUTOMAP_CELL: usize = 0x5F6B0;
     }
+
+    /// Continuous attack patch point (RVA 0x5948B in D2Client.dll).
+    /// Original byte: 0x75 (JNE +0x23). Patched: 0xEB (JMP short +0x23).
+    pub const CONTINUOUS_ATTACK_PATCH: usize = 0x5948B;
+    pub const CONTINUOUS_ATTACK_ORIGINAL: u8 = 0x75;
+    pub const CONTINUOUS_ATTACK_PATCHED: u8 = 0xEB;
+
+    /// Pointer to D2NET_SendPacket in D2Client IAT
+    pub const IAT_D2NET_SEND_PACKET: usize = 0xCEB3C;
 }
 
 /// D2Common.dll offsets
@@ -162,6 +171,15 @@ pub mod d2sigma {
     /// primary hovered-item identity source; use the native tooltip pUnit hook.
     pub const TOOLTIP_TEXT_BUFFER_START: usize = 0x00194080;
     pub const TOOLTIP_TEXT_BUFFER_END: usize = 0x00194280;
+
+    /// Native automap monster blob drawing hook point (RVA 0x485D3 in official D2Sigma.dll)
+    pub const DRAW_MONSTER_BLOB_HOOK: usize = 0x485D3;
+    pub const DRAW_MONSTER_BLOB_RESUME: usize = 0x485DB;
+    pub const DRAW_MONSTER_BLOB_EXIT: usize = 0x48667;
+    pub const DRAW_AUTOMAP_BLOB_FN: usize = 0x48400;
+    pub const DRAW_MONSTER_BLOB_PATCH_SIZE: usize = 8;
+    pub const DRAW_MONSTER_BLOB_ORIGINAL_BYTES: [u8; DRAW_MONSTER_BLOB_PATCH_SIZE] =
+        [0x8B, 0x43, 0x0C, 0x25, 0x00, 0x03, 0x00, 0x00];
 }
 
 /// D2Lang.dll offsets
@@ -336,6 +354,7 @@ pub mod body_loc {
 pub mod items_txt {
     pub const RECORD_SIZE: usize = 0x1A8;
 
+    pub const CODE: usize = 0x74; // 4-char ASCII item code ("hpo ", "wms ", etc.)
     pub const MISC: usize = 0x84; // dword
     pub const DESC_STR_ID: usize = 0xB6; // word
     pub const WCLASS: usize = 0xC0; // u32 (4-char weapon class code: "1hs", "bow", "stf", etc.)
@@ -353,6 +372,8 @@ pub mod items_txt {
     /// classifier, e.g. `tier`).
     pub const TYPE_1: usize = 0x120; // word
     pub const IS_1H: usize = 0x13D; // byte
+    pub const BELT: usize = 0x198; // byte
+    pub const AUTOBELT: usize = 0x199; // byte
 }
 
 /// `D2ItemTypesTxt` record offsets (record size = 0xE4). Layout from D2MOO

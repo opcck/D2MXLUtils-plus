@@ -1,7 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app;
+mod auto_belt;
 mod breakpoints;
+mod combat_tweaks;
 mod d2types;
 mod damage_stats;
 mod dps;
@@ -13,6 +15,7 @@ mod logger;
 mod loot_history;
 mod map_markers;
 mod migrations;
+mod monster_radar;
 mod notifier;
 mod offsets;
 mod process;
@@ -252,6 +255,9 @@ fn main() {
             let dps_meter_reset_state = DpsMeterResetHotkeyState::new();
             let game_create_autofill_state =
                 game_create::GameCreateAutofillHotkeyState::new(game_status.clone());
+            let auto_belt_state = auto_belt::AutoBeltState::new();
+            let combat_tweaks_state = combat_tweaks::CombatTweaksState::new();
+            let monster_radar_state = monster_radar::MonsterRadarState::new();
 
             // Load settings and start hotkey listener
             let app_handle_for_hotkeys = app.handle().clone();
@@ -294,6 +300,16 @@ fn main() {
                     auto_always_show_items
                         .store(loaded_settings.auto_always_show_items, Ordering::SeqCst);
                     auto_no_pickup.store(loaded_settings.auto_no_pickup, Ordering::SeqCst);
+                    auto_belt_state
+                        .enabled
+                        .store(loaded_settings.auto_belt, Ordering::SeqCst);
+                    if let Ok(mut tweaks) = combat_tweaks_state.tweaks.lock() {
+                        tweaks.enabled = loaded_settings.continuous_attack;
+                    }
+                    if let Ok(mut radar) = monster_radar_state.hook.lock() {
+                        radar.enabled = loaded_settings.radar_enabled;
+                        radar.show_normal = loaded_settings.radar_show_normal;
+                    }
                 }
                 Err(e) => {
                     log_error(&format!("Failed to load settings for hotkeys: {}", e));
@@ -315,6 +331,16 @@ fn main() {
                         password_use_prefix: defaults.game_create_password_use_prefix,
                         description: defaults.game_create_description,
                     });
+                    auto_belt_state
+                        .enabled
+                        .store(defaults.auto_belt, Ordering::SeqCst);
+                    if let Ok(mut tweaks) = combat_tweaks_state.tweaks.lock() {
+                        tweaks.enabled = defaults.continuous_attack;
+                    }
+                    if let Ok(mut radar) = monster_radar_state.hook.lock() {
+                        radar.enabled = defaults.radar_enabled;
+                        radar.show_normal = defaults.radar_show_normal;
+                    }
                 }
             }
 
@@ -325,6 +351,9 @@ fn main() {
             app.manage(item_search_hotkey_state);
             app.manage(dps_meter_reset_state);
             app.manage(game_create_autofill_state);
+            app.manage(auto_belt_state);
+            app.manage(combat_tweaks_state);
+            app.manage(monster_radar_state);
 
             // Spawn auto-scanner monitor
             let app_handle = app.handle().clone();
@@ -454,7 +483,11 @@ fn main() {
             updater::restart_app,
             app::open_app_folder,
             app::open_external_url,
-            app::get_changelog
+            app::get_changelog,
+            monster_radar::toggle_monster_radar,
+            monster_radar::set_radar_show_normal,
+            combat_tweaks::toggle_continuous_attack,
+            auto_belt::toggle_auto_belt
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

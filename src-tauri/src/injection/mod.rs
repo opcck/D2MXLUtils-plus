@@ -69,6 +69,7 @@ pub struct D2Injector {
     pub inject_get_item_stat: usize,
     pub inject_get_unit_stat: usize,
     pub inject_new_automap_cell: usize,
+    pub inject_send_packet: usize,
 }
 
 // SAFETY: Send is sound because all state lives in remote process memory;
@@ -95,6 +96,7 @@ pub struct D2Injector {
     pub inject_get_item_stat: usize,
     pub inject_get_unit_stat: usize,
     pub inject_new_automap_cell: usize,
+    pub inject_send_packet: usize,
 }
 
 // --- Stub for other OSes (compilation only) ---

@@ -109,6 +109,10 @@ export interface AppSettings {
   /** Collapsed group-rule line numbers in the Loot Filter editor, keyed by
    *  profile name, so folds survive switching tabs and restarting the app. */
   foldedLines: Record<string, number[]>;
+  radarEnabled: boolean;
+  radarShowNormal: boolean;
+  continuousAttack: boolean;
+  autoBelt: boolean;
 }
 
 /** Window state interface */
@@ -201,6 +205,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
   widgetPositions: {},
   foldedLines: {},
+  radarEnabled: true,
+  radarShowNormal: true,
+  continuousAttack: true,
+  autoBelt: true,
 };
 
 /** Settings store singleton */
@@ -574,6 +582,42 @@ class SettingsStore {
       await invoke('set_auto_no_pickup', { enabled });
     } catch (error) {
       console.error('[Settings] Failed to update auto /nopickup:', error);
+    }
+  }
+
+  async setRadarEnabled(enabled: boolean): Promise<void> {
+    this.set('radarEnabled', enabled);
+    try {
+      await invoke('toggle_monster_radar', { enabled });
+    } catch (error) {
+      console.error('[Settings] Failed to toggle monster radar:', error);
+    }
+  }
+
+  async setRadarShowNormal(showNormal: boolean): Promise<void> {
+    this.set('radarShowNormal', showNormal);
+    try {
+      await invoke('set_radar_show_normal', { showNormal });
+    } catch (error) {
+      console.error('[Settings] Failed to update radar show normal:', error);
+    }
+  }
+
+  async setContinuousAttack(enabled: boolean): Promise<void> {
+    this.set('continuousAttack', enabled);
+    try {
+      await invoke('toggle_continuous_attack', { enabled });
+    } catch (error) {
+      console.error('[Settings] Failed to toggle continuous attack:', error);
+    }
+  }
+
+  async setAutoBelt(enabled: boolean): Promise<void> {
+    this.set('autoBelt', enabled);
+    try {
+      await invoke('toggle_auto_belt', { enabled });
+    } catch (error) {
+      console.error('[Settings] Failed to toggle auto belt:', error);
     }
   }
 }

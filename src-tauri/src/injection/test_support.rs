@@ -40,6 +40,7 @@ impl D2Injector {
             inject_get_item_stat: 0,
             inject_get_unit_stat: 0,
             inject_new_automap_cell: 0,
+            inject_send_packet: 0,
         }
     }
 }

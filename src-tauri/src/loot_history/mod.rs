@@ -13,7 +13,7 @@ use crate::AppState;
 use tauri::{AppHandle, Emitter};
 
 pub(crate) use hotkey::{
-    update_loot_history_hotkey, LootHistoryHotkeyState, __cmd__update_loot_history_hotkey,
+    __cmd__update_loot_history_hotkey, update_loot_history_hotkey, LootHistoryHotkeyState,
 };
 
 pub use history::LootHistory;

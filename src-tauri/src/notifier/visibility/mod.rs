@@ -10,5 +10,5 @@ pub(super) use hook::{visibility_mask_ops, LootFilterHook, VisibilityMaskOp};
 pub(super) use tracker::{HookBitTracker, HookCleanupFailureLogThrottle, PendingVisibilityMaskOps};
 
 pub(crate) use hotkey::{
-    update_reveal_hidden_hotkey, RevealHiddenState, __cmd__update_reveal_hidden_hotkey,
+    __cmd__update_reveal_hidden_hotkey, update_reveal_hidden_hotkey, RevealHiddenState,
 };

@@ -2,7 +2,7 @@
 
 #![cfg(any(target_os = "windows", target_os = "linux"))]
 
-mod manager;
+pub(crate) mod manager;
 mod scanner;
 
 pub(crate) use scanner::MarkerScanner;

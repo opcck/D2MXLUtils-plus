@@ -22,7 +22,7 @@ mod visibility;
 pub use catalog::{load_matching_cache, save_matching_cache};
 pub(crate) use dictionary_cache::{load_items_cache, save_items_cache};
 pub(crate) use visibility::{
-    update_reveal_hidden_hotkey, RevealHiddenState, __cmd__update_reveal_hidden_hotkey,
+    __cmd__update_reveal_hidden_hotkey, update_reveal_hidden_hotkey, RevealHiddenState,
 };
 
 #[cfg(all(test, any(target_os = "windows", target_os = "linux")))]

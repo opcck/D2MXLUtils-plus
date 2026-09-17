@@ -123,4 +123,14 @@ impl D2Injector {
         // Read result from string buffer
         process.read_memory::<u32>(self.string_buffer.address)
     }
+
+    /// Send packet to server via D2NET_SendPacket
+    pub fn send_packet(&self, process: &ProcessHandle, packet: &[u8]) -> Result<(), String> {
+        if packet.is_empty() || packet.len() > 64 {
+            return Err(format!("Invalid packet length: {}", packet.len()));
+        }
+        process.write_buffer(self.params_buffer.address, packet)?;
+        remote_thread(process, self.inject_send_packet, packet.len())?;
+        Ok(())
+    }
 }

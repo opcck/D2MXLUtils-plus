@@ -55,6 +55,7 @@ impl D2Injector {
         let inject_get_item_stat = inject_base + d2client::inject::GET_ITEM_STAT;
         let inject_get_unit_stat = inject_base + d2common::INJECT_GET_UNIT_STAT;
         let inject_new_automap_cell = inject_base + d2client::inject::NEW_AUTOMAP_CELL;
+        let inject_send_packet = params_buffer.address + 0x40;
 
         let injector = Self {
             telemetry: StatTelemetryCounters::default(),
@@ -65,6 +66,7 @@ impl D2Injector {
             inject_get_item_stat,
             inject_get_unit_stat,
             inject_new_automap_cell,
+            inject_send_packet,
         };
 
         injector.inject_functions(process, d2_client, d2_common, d2_lang)?;

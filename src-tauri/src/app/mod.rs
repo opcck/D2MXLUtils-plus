@@ -27,6 +27,6 @@ pub(crate) use commands::{
 };
 
 pub(crate) use controls::{
-    update_edit_mode_hotkey, update_hotkey, EditModeState, HotkeyState,
-    __cmd__update_edit_mode_hotkey, __cmd__update_hotkey,
+    __cmd__update_edit_mode_hotkey, __cmd__update_hotkey, update_edit_mode_hotkey, update_hotkey,
+    EditModeState, HotkeyState,
 };

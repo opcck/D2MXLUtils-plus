@@ -17,5 +17,5 @@ pub(crate) use accumulator::DpsMeter;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 pub(crate) use hook::DpsHook;
 pub(crate) use hotkey::{
-    update_dps_meter_reset_hotkey, DpsMeterResetHotkeyState, __cmd__update_dps_meter_reset_hotkey,
+    __cmd__update_dps_meter_reset_hotkey, update_dps_meter_reset_hotkey, DpsMeterResetHotkeyState,
 };

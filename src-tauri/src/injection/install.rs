@@ -98,6 +98,21 @@ impl D2Injector {
         new_cell_code.push(0xC3);
         process.write_buffer(self.inject_new_automap_cell, &new_cell_code)?;
 
+        // SendPacket injection (calls D2NET_SendPacket via D2Client IAT)
+        // Shellcode:
+        //   push params_addr          ; Arg 3: pPacket
+        //   push 1                    ; Arg 2: flags = 1
+        //   push [esp + 0x0C]         ; Arg 1: nLen
+        //   call [d2_client + IAT_D2NET_SEND_PACKET]
+        //   ret 4
+        let iat_send_packet = (d2_client + d2client::IAT_D2NET_SEND_PACKET) as u32;
+        let mut send_packet_code: Vec<u8> = vec![0x68];
+        send_packet_code.extend_from_slice(&swap_endian(_params_addr));
+        send_packet_code.extend_from_slice(&[0x6A, 0x01, 0xFF, 0x74, 0x24, 0x0C, 0xFF, 0x15]);
+        send_packet_code.extend_from_slice(&swap_endian(iat_send_packet));
+        send_packet_code.extend_from_slice(&[0xC2, 0x04, 0x00]);
+        process.write_buffer(self.inject_send_packet, &send_packet_code)?;
+
         Ok(())
     }
 }

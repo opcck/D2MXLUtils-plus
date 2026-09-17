@@ -193,6 +193,22 @@ pub struct AppSettings {
     /// profile name, so folds survive switching tabs and restarting the app.
     #[serde(default)]
     pub folded_lines: HashMap<String, Vec<u32>>,
+
+    /// Whether the minimap monster radar hook is enabled.
+    #[serde(default = "default_radar_enabled")]
+    pub radar_enabled: bool,
+
+    /// Whether the minimap monster radar displays normal monsters (red dots).
+    #[serde(default = "default_radar_show_normal")]
+    pub radar_show_normal: bool,
+
+    /// Whether holding mouse attack keeps firing towards cursor after target dies.
+    #[serde(default = "default_continuous_attack")]
+    pub continuous_attack: bool,
+
+    /// Whether auto belt potion replenishment is enabled.
+    #[serde(default = "default_auto_belt")]
+    pub auto_belt: bool,
 }
 
 /// Window state for persistence
@@ -244,6 +260,22 @@ fn default_auto_no_pickup() -> bool {
 }
 
 fn default_show_items_hidden_indicator() -> bool {
+    true
+}
+
+fn default_radar_enabled() -> bool {
+    true
+}
+
+fn default_radar_show_normal() -> bool {
+    true
+}
+
+fn default_continuous_attack() -> bool {
+    true
+}
+
+fn default_auto_belt() -> bool {
     true
 }
 
@@ -320,6 +352,10 @@ impl Default for AppSettings {
             dps_meter: DpsMeterSettings::default(),
             widget_positions: HashMap::new(),
             folded_lines: HashMap::new(),
+            radar_enabled: default_radar_enabled(),
+            radar_show_normal: default_radar_show_normal(),
+            continuous_attack: default_continuous_attack(),
+            auto_belt: default_auto_belt(),
         }
     }
 }
