@@ -1,27 +1,23 @@
 //! Auto Belt Module
-//! Automatically replenishes empty belt slots from nearby ground potions (within ~5 yards)
-//! or from potions in the player's inventory by sending native game packets.
+//! Automatically replenishes empty belt slots from potions in the player's inventory
+//! by sending native game packets (packet 0x63 ItemToBelt).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use crate::injection::D2Injector;
-use crate::map_markers::manager::{bfs_item_positions, read_player_subtile};
 use crate::offsets::{
-    d2client, d2common, inventory, inventory_grid, item_data, items_txt, unit, unit_type,
+    body_loc, d2client, d2common, inventory, inventory_grid, item_data, items_txt, unit,
 };
 use crate::process::D2Context;
 
-/// Maximum range in subtiles for picking up ground potions (~5 yards).
-/// In Diablo II, 1 yard is approximately 3 subtiles -> 5 yards ≈ 15 subtiles.
-const GROUND_PICKUP_RANGE_SUBTILES: i32 = 16;
-const ACTION_COOLDOWN_MS: u64 = 300;
+const ACTION_COOLDOWN_MS: u64 = 250;
 
 /// Well-known Median XL potion 4-character codes from misc.txt
-const KNOWN_POTION_CODES: [&[u8; 4]; 19] = [
+const KNOWN_POTION_CODES: [&[u8; 4]; 20] = [
     b"hpo ", b"mpo ", b"hpf ", b"mpf ", b"wms ", b"hrt ", b"rvs ", b"rvl ", b"hp1 ", b"hp2 ",
-    b"hp3 ", b"hp4 ", b"hp5 ", b"mp1 ", b"mp2 ", b"mp3 ", b"mp4 ", b"mp5 ", b"yps ",
+    b"hp3 ", b"hp4 ", b"hp5 ", b"mp1 ", b"mp2 ", b"mp3 ", b"mp4 ", b"mp5 ", b"yps ", b"vps ",
 ];
 
 pub struct AutoBeltState {
@@ -56,26 +52,7 @@ impl AutoBeltState {
             return;
         }
 
-        // 2. Try picking up a ground potion within 5 yards
-        if let Some(ground_uid) = find_nearby_ground_potion(ctx, GROUND_PICKUP_RANGE_SUBTILES) {
-            let packet = build_ground_to_belt_packet(ground_uid);
-            if let Ok(inj) = injector.lock() {
-                if let Err(e) = inj.send_packet(&ctx.process, &packet) {
-                    crate::logger::error(&format!("AutoBelt: ground pickup packet failed: {}", e));
-                } else {
-                    crate::logger::info(&format!(
-                        "AutoBelt: picked up ground potion (ID: {})",
-                        ground_uid
-                    ));
-                    if let Ok(mut last) = self.last_action.lock() {
-                        *last = Instant::now();
-                    }
-                    return;
-                }
-            }
-        }
-
-        // 3. If no ground potion was found, check for a potion in the inventory
+        // 2. Check for a potion in the player's inventory
         if let Some(inv_uid) = find_inventory_potion(ctx) {
             let packet = build_inventory_to_belt_packet(inv_uid);
             if let Ok(inj) = injector.lock() {
@@ -83,7 +60,7 @@ impl AutoBeltState {
                     crate::logger::error(&format!("AutoBelt: inventory move packet failed: {}", e));
                 } else {
                     crate::logger::info(&format!(
-                        "AutoBelt: moved inventory potion to belt (ID: {})",
+                        "AutoBelt: moved inventory potion to belt (ID: 0x{:X})",
                         inv_uid
                     ));
                     if let Ok(mut last) = self.last_action.lock() {
@@ -152,76 +129,98 @@ pub fn has_empty_belt_slot(ctx: &D2Context) -> bool {
         _ => return false,
     };
 
-    // Grid 1 is INVGRID_BELT (starts at p_grids + 0x10)
-    let p_belt_grid = p_grids + inventory_grid::SIZE;
-    let width = ctx
+    // Determine belt capacity:
+    // If an equipped belt exists in BodyLoc grid (grid 0, index 8), Median XL belts have 16 slots.
+    // If no belt is equipped, base character belt has 4 slots (1 row).
+    let mut max_capacity = 4usize;
+    if let Ok(grid0_pp_items) = ctx
         .process
-        .read_memory::<i32>(p_belt_grid + 0x04)
-        .unwrap_or(4);
-    let height = ctx
-        .process
-        .read_memory::<i32>(p_belt_grid + 0x08)
-        .unwrap_or(1);
-
-    let total_slots = if width > 0 && height > 0 {
-        ((width * height) as usize).min(16)
-    } else {
-        4
-    };
-
-    let pp_items = match ctx
-        .process
-        .read_memory::<u32>(p_belt_grid + inventory_grid::PP_ITEMS)
+        .read_memory::<u32>(p_grids + inventory_grid::PP_ITEMS)
     {
-        Ok(p) if p != 0 => p as usize,
-        _ => return false,
-    };
-
-    // Check each belt slot pointer
-    for slot in 0..total_slots {
-        let p_item = ctx
-            .process
-            .read_memory::<u32>(pp_items + slot * 4)
-            .unwrap_or(0);
-        if p_item == 0 {
-            return true;
+        if grid0_pp_items != 0 {
+            let equipped_belt = ctx
+                .process
+                .read_memory::<u32>(grid0_pp_items as usize + body_loc::BELT * 4)
+                .unwrap_or(0);
+            if equipped_belt != 0 {
+                max_capacity = 16;
+            }
         }
     }
 
-    false
-}
+    // Also check Grid 1 (INVGRID_BELT at p_grids + 0x10)
+    let p_belt_grid = p_grids + inventory_grid::SIZE;
+    let grid_x = ctx
+        .process
+        .read_memory::<i32>(p_belt_grid + 0x00)
+        .unwrap_or(4);
+    let grid_y = ctx
+        .process
+        .read_memory::<i32>(p_belt_grid + 0x04)
+        .unwrap_or(0);
 
-/// Finds a ground potion within max_subtiles Manhattan/Euclidean distance from the player
-pub fn find_nearby_ground_potion(ctx: &D2Context, max_subtiles: i32) -> Option<u32> {
-    let (px, py) = read_player_subtile(ctx)?;
-    let max_dist_sq = max_subtiles * max_subtiles;
+    if grid_x > 0 && grid_y > 0 {
+        let grid_cap = ((grid_x * grid_y) as usize).clamp(4, 16);
+        max_capacity = grid_cap;
 
-    // Use Room1 BFS with small hop count (depth 3 is ample for ~5 yards)
-    let positions = bfs_item_positions(ctx, 3).ok()?;
-
-    for (p_unit, sx, sy) in positions {
-        let dx = px - sx;
-        let dy = py - sy;
-        if dx * dx + dy * dy <= max_dist_sq {
-            let class_id = match ctx
-                .process
-                .read_memory::<u32>(p_unit as usize + unit::CLASS)
-            {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
-            if is_potion(ctx, class_id) {
-                if let Ok(unit_id) = ctx
-                    .process
-                    .read_memory::<u32>(p_unit as usize + unit::UNIT_ID)
-                {
-                    return Some(unit_id);
+        // Check if any slot pointer in the belt grid is NULL
+        if let Ok(pp_items) = ctx
+            .process
+            .read_memory::<u32>(p_belt_grid + inventory_grid::PP_ITEMS)
+        {
+            if pp_items != 0 {
+                for slot in 0..grid_cap {
+                    let p_item = ctx
+                        .process
+                        .read_memory::<u32>(pp_items as usize + slot * 4)
+                        .unwrap_or(0);
+                    if p_item == 0 {
+                        return true;
+                    }
                 }
             }
         }
     }
 
-    None
+    // Secondary fallback check: count items owned by the player with ITEM_LOCATION == 2 (BELT)
+    let mut p_item = match ctx
+        .process
+        .read_memory::<u32>(p_inv + inventory::FIRST_ITEM)
+    {
+        Ok(p) if p != 0 => p as usize,
+        _ => return false,
+    };
+
+    let mut belt_items_count = 0usize;
+    for _ in 0..256 {
+        if p_item == 0 {
+            break;
+        }
+
+        let p_unit_data = match ctx.process.read_memory::<u32>(p_item + unit::UNIT_DATA) {
+            Ok(p) if p != 0 => p as usize,
+            _ => break,
+        };
+
+        let item_loc = ctx
+            .process
+            .read_memory::<u8>(p_unit_data + item_data::ITEM_LOCATION)
+            .unwrap_or(0xFF);
+
+        if item_loc == 2 {
+            belt_items_count += 1;
+        }
+
+        p_item = match ctx
+            .process
+            .read_memory::<u32>(p_unit_data + item_data::NEXT_ITEM)
+        {
+            Ok(p) if p != 0 => p as usize,
+            _ => break,
+        };
+    }
+
+    belt_items_count < max_capacity
 }
 
 /// Finds a potion in the player's main inventory to move into the belt
@@ -292,19 +291,10 @@ pub fn find_inventory_potion(ctx: &D2Context) -> Option<u32> {
     None
 }
 
-/// Builds the 13-byte 0x16 packet to pick up a ground item directly to belt
-pub fn build_ground_to_belt_packet(unit_id: u32) -> [u8; 13] {
-    let mut packet = [0u8; 13];
-    packet[0] = 0x16;
-    packet[1] = 0x04; // UNIT_ITEM
-    packet[5..9].copy_from_slice(&unit_id.to_le_bytes());
-    packet
-}
-
-/// Builds the 9-byte 0x26 packet to move an inventory item directly to belt
-pub fn build_inventory_to_belt_packet(unit_id: u32) -> [u8; 9] {
-    let mut packet = [0u8; 9];
-    packet[0] = 0x26;
+/// Builds the 5-byte 0x63 packet (ItemToBelt) to move an inventory item directly to belt
+pub fn build_inventory_to_belt_packet(unit_id: u32) -> [u8; 5] {
+    let mut packet = [0u8; 5];
+    packet[0] = 0x63; // D2GS_ITEMTOBELT
     packet[1..5].copy_from_slice(&unit_id.to_le_bytes());
     packet
 }

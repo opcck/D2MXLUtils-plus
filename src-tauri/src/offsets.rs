@@ -57,6 +57,9 @@ pub mod d2client {
         /// returned uninitialized. Do NOT call AddAutomapCell (0x61320): it
         /// crashes when invoked from a remote thread in our setup.
         pub const NEW_AUTOMAP_CELL: usize = 0x5F6B0;
+        /// Internal D2Client SendPacket function (0x143E0 in D2Client.dll).
+        /// Calling convention: EBX = nLen, push pPacket (stdcall stack cleanup via ret 4).
+        pub const SEND_PACKET: usize = 0x143E0;
     }
 
     /// Continuous attack patch point (RVA 0x5948B in D2Client.dll).

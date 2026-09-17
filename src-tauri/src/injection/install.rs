@@ -98,19 +98,36 @@ impl D2Injector {
         new_cell_code.push(0xC3);
         process.write_buffer(self.inject_new_automap_cell, &new_cell_code)?;
 
-        // SendPacket injection (calls D2NET_SendPacket via D2Client IAT)
+        // SendPacket injection (calls D2Client's internal SendPacket function at RVA 0x143E0)
+        // Calling convention of D2Client+0x143E0:
+        //   EBX = packet length (nLen)
+        //   Stack: push pPacket (callee cleans 4 bytes with ret 4)
+        //
+        // ThreadProc entry convention (CreateRemoteThread on Windows):
+        //   [esp + 0x00] = return address to kernel
+        //   [esp + 0x04] = lpParameter (nLen)
+        //
         // Shellcode:
-        //   push params_addr          ; Arg 3: pPacket
-        //   push 1                    ; Arg 2: flags = 1
-        //   push [esp + 0x0C]         ; Arg 1: nLen
-        //   call [d2_client + IAT_D2NET_SEND_PACKET]
-        //   ret 4
-        let iat_send_packet = (d2_client + d2client::IAT_D2NET_SEND_PACKET) as u32;
-        let mut send_packet_code: Vec<u8> = vec![0x68];
+        //   push ebx                  ; 53 (preserve ebx)
+        //   push esi                  ; 56 (preserve esi)
+        //   push edi                  ; 57 (preserve edi)
+        //   push ebp                  ; 55 (preserve ebp)
+        //   mov ebx, [esp + 0x14]     ; 8B 5C 24 14 (original [esp+4] is now at [esp+0x14])
+        //   push params_addr          ; 68 [params_addr] (Arg: pPacket)
+        //   mov eax, send_packet_fn   ; B8 [d2_client + 0x143E0]
+        //   call eax                  ; FF D0 (calls D2Client+0x143E0, callee executes ret 4)
+        //   pop ebp                   ; 5D
+        //   pop edi                   ; 5F
+        //   pop esi                   ; 5E
+        //   pop ebx                   ; 5B
+        //   ret 4                     ; C2 04 00 (ThreadProc returns, pops lpParameter)
+        let send_packet_target = (d2_client + d2client::func::SEND_PACKET) as u32;
+        let mut send_packet_code: Vec<u8> =
+            vec![0x53, 0x56, 0x57, 0x55, 0x8B, 0x5C, 0x24, 0x14, 0x68];
         send_packet_code.extend_from_slice(&swap_endian(_params_addr));
-        send_packet_code.extend_from_slice(&[0x6A, 0x01, 0xFF, 0x74, 0x24, 0x0C, 0xFF, 0x15]);
-        send_packet_code.extend_from_slice(&swap_endian(iat_send_packet));
-        send_packet_code.extend_from_slice(&[0xC2, 0x04, 0x00]);
+        send_packet_code.push(0xB8);
+        send_packet_code.extend_from_slice(&swap_endian(send_packet_target));
+        send_packet_code.extend_from_slice(&[0xFF, 0xD0, 0x5D, 0x5F, 0x5E, 0x5B, 0xC2, 0x04, 0x00]);
         process.write_buffer(self.inject_send_packet, &send_packet_code)?;
 
         Ok(())

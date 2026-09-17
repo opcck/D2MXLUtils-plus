@@ -516,9 +516,7 @@
     <div class="setting-row">
       <div class="setting-info">
         <span class="setting-label">药水自动补充入腰带 (Auto Potion Belt)</span>
-        <span class="setting-hint"
-          >腰带存在空位时，自动拾取地面5码内药水或从背包将药水自动放入腰带。</span
-        >
+        <span class="setting-hint">腰带存在空位时，自动从背包将药水补充入腰带。</span>
       </div>
       <Toggle checked={autoBelt} onchange={handleAutoBeltChange} />
     </div>
