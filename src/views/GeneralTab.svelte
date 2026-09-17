@@ -18,6 +18,7 @@
   let radarShowNormal = $derived(settingsStore.settings.radarShowNormal);
   let continuousAttack = $derived(settingsStore.settings.continuousAttack);
   let autoBelt = $derived(settingsStore.settings.autoBelt);
+  let removeShadows = $derived(settingsStore.settings.removeShadows);
 
   const UNBOUND_HOTKEY: HotkeyConfig = { keyCode: 0, modifiers: 0, display: 'None' };
 
@@ -298,6 +299,10 @@
     settingsStore.setAutoBelt(enabled);
   }
 
+  function handleRemoveShadowsChange(enabled: boolean) {
+    settingsStore.setRemoveShadows(enabled);
+  }
+
   let showChangelog = $state(false);
   let changelogHtml = $state('');
 
@@ -519,6 +524,16 @@
         <span class="setting-hint">腰带存在空位时，自动从背包将药水补充入腰带。</span>
       </div>
       <Toggle checked={autoBelt} onchange={handleAutoBeltChange} />
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-info">
+        <span class="setting-label">去除场景与单位阴影 (Remove Shadows)</span>
+        <span class="setting-hint"
+          >关闭游戏内的环境与单位阴影渲染，提升同屏多怪时的帧率与画面清晰度。</span
+        >
+      </div>
+      <Toggle checked={removeShadows} onchange={handleRemoveShadowsChange} />
     </div>
   </div>
 

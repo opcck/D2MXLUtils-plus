@@ -70,6 +70,12 @@ pub fn save_settings(app: AppHandle, settings: AppSettings) -> Result<(), String
             .store(settings.auto_belt, std::sync::atomic::Ordering::Relaxed);
     }
 
+    if let Some(state) = app.try_state::<crate::shadow_tweak::ShadowTweakState>() {
+        if let Ok(mut tweak) = state.tweak.lock() {
+            tweak.enabled = settings.remove_shadows;
+        }
+    }
+
     if let Err(e) = app.emit("settings-updated", &settings) {
         log_error(&format!("Failed to emit settings-updated: {}", e));
     }

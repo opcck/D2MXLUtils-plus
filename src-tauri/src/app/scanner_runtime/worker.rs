@@ -230,6 +230,17 @@ pub(super) fn start_scanner_internal(
                     }
                 }
 
+                #[cfg(any(target_os = "windows", target_os = "linux"))]
+                if let Some(shadow_state) = app_handle.try_state::<crate::shadow_tweak::ShadowTweakState>() {
+                    if let Ok(mut tweak) = shadow_state.tweak.lock() {
+                        if tweak.enabled {
+                            if let Err(e) = tweak.apply(&shared_state.ctx.process, shared_state.ctx.d2_client) {
+                                log_error(&format!("Failed to apply remove shadow tweak: {}", e));
+                            }
+                        }
+                    }
+                }
+
                 (shared_state, scanner)
             };
 
@@ -775,6 +786,13 @@ pub(super) fn start_scanner_internal(
             if let Some(radar_state) = app_handle.try_state::<crate::monster_radar::MonsterRadarState>() {
                 if let Ok(mut radar) = radar_state.hook.lock() {
                     let _ = radar.eject(&shared_state.ctx.process);
+                }
+            }
+
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            if let Some(shadow_state) = app_handle.try_state::<crate::shadow_tweak::ShadowTweakState>() {
+                if let Ok(mut tweak) = shadow_state.tweak.lock() {
+                    let _ = tweak.restore(&shared_state.ctx.process, shared_state.ctx.d2_client);
                 }
             }
 

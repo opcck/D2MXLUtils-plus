@@ -113,6 +113,7 @@ export interface AppSettings {
   radarShowNormal: boolean;
   continuousAttack: boolean;
   autoBelt: boolean;
+  removeShadows: boolean;
 }
 
 /** Window state interface */
@@ -209,6 +210,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   radarShowNormal: true,
   continuousAttack: true,
   autoBelt: true,
+  removeShadows: false,
 };
 
 /** Settings store singleton */
@@ -618,6 +620,15 @@ class SettingsStore {
       await invoke('toggle_auto_belt', { enabled });
     } catch (error) {
       console.error('[Settings] Failed to toggle auto belt:', error);
+    }
+  }
+
+  async setRemoveShadows(enabled: boolean): Promise<void> {
+    this.set('removeShadows', enabled);
+    try {
+      await invoke('toggle_remove_shadows', { enabled });
+    } catch (error) {
+      console.error('[Settings] Failed to toggle remove shadows:', error);
     }
   }
 }

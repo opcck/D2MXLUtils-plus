@@ -24,6 +24,7 @@ mod remote_io;
 mod rules;
 mod scanner_state;
 mod settings;
+mod shadow_tweak;
 mod sounds;
 mod stat_telemetry;
 mod stats_panel;
@@ -258,6 +259,7 @@ fn main() {
             let auto_belt_state = auto_belt::AutoBeltState::new();
             let combat_tweaks_state = combat_tweaks::CombatTweaksState::new();
             let monster_radar_state = monster_radar::MonsterRadarState::new();
+            let shadow_tweak_state = shadow_tweak::ShadowTweakState::new();
 
             // Load settings and start hotkey listener
             let app_handle_for_hotkeys = app.handle().clone();
@@ -310,6 +312,9 @@ fn main() {
                         radar.enabled = loaded_settings.radar_enabled;
                         radar.show_normal = loaded_settings.radar_show_normal;
                     }
+                    if let Ok(mut tweak) = shadow_tweak_state.tweak.lock() {
+                        tweak.enabled = loaded_settings.remove_shadows;
+                    }
                 }
                 Err(e) => {
                     log_error(&format!("Failed to load settings for hotkeys: {}", e));
@@ -341,6 +346,9 @@ fn main() {
                         radar.enabled = defaults.radar_enabled;
                         radar.show_normal = defaults.radar_show_normal;
                     }
+                    if let Ok(mut tweak) = shadow_tweak_state.tweak.lock() {
+                        tweak.enabled = defaults.remove_shadows;
+                    }
                 }
             }
 
@@ -354,6 +362,7 @@ fn main() {
             app.manage(auto_belt_state);
             app.manage(combat_tweaks_state);
             app.manage(monster_radar_state);
+            app.manage(shadow_tweak_state);
 
             // Spawn auto-scanner monitor
             let app_handle = app.handle().clone();
@@ -487,7 +496,8 @@ fn main() {
             monster_radar::toggle_monster_radar,
             monster_radar::set_radar_show_normal,
             combat_tweaks::toggle_continuous_attack,
-            auto_belt::toggle_auto_belt
+            auto_belt::toggle_auto_belt,
+            shadow_tweak::toggle_remove_shadows
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

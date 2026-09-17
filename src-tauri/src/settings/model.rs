@@ -209,6 +209,10 @@ pub struct AppSettings {
     /// Whether auto belt potion replenishment is enabled.
     #[serde(default = "default_auto_belt")]
     pub auto_belt: bool,
+
+    /// Whether scene and unit shadows are removed.
+    #[serde(default = "default_remove_shadows")]
+    pub remove_shadows: bool,
 }
 
 /// Window state for persistence
@@ -277,6 +281,10 @@ fn default_continuous_attack() -> bool {
 
 fn default_auto_belt() -> bool {
     true
+}
+
+fn default_remove_shadows() -> bool {
+    false
 }
 
 fn default_edit_overlay_hotkey() -> HotkeyConfig {
@@ -356,6 +364,7 @@ impl Default for AppSettings {
             radar_show_normal: default_radar_show_normal(),
             continuous_attack: default_continuous_attack(),
             auto_belt: default_auto_belt(),
+            remove_shadows: default_remove_shadows(),
         }
     }
 }
