@@ -246,14 +246,39 @@ impl HoveredItemHook {
         }
 
         let get_tick_count_addr = get_tick_count_addr(&ctx.process)?;
-        let (target, resume) = tooltip_hook_addresses(ctx.d2_sigma);
+        let (mut target, mut resume) = tooltip_hook_addresses(ctx.d2_sigma);
 
         let mut saved = [0u8; crate::offsets::d2sigma::TOOLTIP_ITEM_HOOK_PATCH_SIZE];
         ctx.process
             .read_buffer_into(target, &mut saved)
             .map_err(|e| format!("read tooltip hook prologue: {}", e))?;
 
-        match classify_tooltip_prologue(target, saved) {
+        let mut prologue_state = classify_tooltip_prologue(target, saved);
+        if let PrologueState::Mismatch(actual) = prologue_state {
+            if ctx.d2_sigma_size > 0 {
+                if let Some(hit) = ctx.process.scan_pattern_wildcard(
+                    ctx.d2_sigma,
+                    ctx.d2_sigma_size,
+                    TOOLTIP_ITEM_HOOK_SIGNATURE,
+                    ctx.d2_sigma,
+                ) {
+                    crate::logger::info(&format!(
+                        "[ItemSearch] hardcoded tooltip hook mismatch (expected {:02X?}, got {:02X?}); dynamically resolved to D2Sigma+0x{:X}",
+                        crate::offsets::d2sigma::TOOLTIP_ITEM_HOOK_PROLOGUE,
+                        actual,
+                        hit - ctx.d2_sigma
+                    ));
+                    target = hit;
+                    resume = hit + crate::offsets::d2sigma::TOOLTIP_ITEM_HOOK_PATCH_SIZE;
+                    ctx.process
+                        .read_buffer_into(target, &mut saved)
+                        .map_err(|e| format!("read relocated tooltip hook prologue: {}", e))?;
+                    prologue_state = classify_tooltip_prologue(target, saved);
+                }
+            }
+        }
+
+        match prologue_state {
             PrologueState::Original => {
                 let mut signature_bytes = vec![0u8; TOOLTIP_ITEM_HOOK_SIGNATURE.len()];
                 ctx.process
@@ -999,13 +1024,12 @@ pub(crate) fn read_hovered_item_detail(
         let Some(class_id) = read_u32(crate::offsets::unit::CLASS) else {
             continue;
         };
-        let Some(mode) = read_u32(crate::offsets::unit::MODE) else {
-            continue;
-        };
         let Some(p_unit_data) = read_u32(crate::offsets::unit::UNIT_DATA) else {
             continue;
         };
-        if !valid_hovered_item_unit(unit_type, class_id, mode, p_unit_data) {
+        // 允许地面、背包、身上、储物箱等任意合法物品单位
+        if unit_type != crate::offsets::unit_type::ITEM || class_id >= 0x1_0000 || p_unit_data == 0
+        {
             continue;
         }
 
