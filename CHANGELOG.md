@@ -4,15 +4,17 @@
 
 ### Features
 
-- 原生移植集成 HackMap 怪物抗性与 ID 血条显示：鼠标悬停在怪物顶部血条时，提取并展示六系抗性（物、魔、火、电、冰、毒及免疫状态），支持显示怪物 Class ID，支持游戏内快捷键（默认 `]`）实时开关。
-- 原生移植集成 HackMap 物品详细信息显示：在地面物品名牌与悬停 Tooltip 首行显示 UID 与类别 CID，并在名称后缀显示孔数 `(4s)` 与无形标记 `(eth)`，支持游戏内快捷键（默认 `[`）实时开关。
-- 深度适配 Median XL 2.14.3 最新版本：建立 D2Sigma 2.14.3 静态偏移表，结合双轨 AOB 特征码动态自愈扫描机制，未来游戏小版本更新可自适应定位。
+- Feat: 原生移植集成 HackMap 怪物抗性ID血条与物品详细信息显示 (v1.28.3) (1a22251)
 
 ## v1.28.2 — 2026-09-18
 
-### Features & Styling
+### Miscellaneous
 
-- 优化 Assist 辅助页面界面文案，移除开发者调试小字说明。
+- Chore(release): 发布新版本 v1.28.2 (优化UI文案) (85ad30a)
+
+### Styling
+
+- Style(assist): 移除自动拾取标题下方的开发者描述小字 (1ac2af8)
 
 ## v1.28.1 — 2026-09-18
 
@@ -530,11 +532,22 @@
 
 - Fix(filter): auto-load active profile on startup (0e5b82e)
 - Fix(notifier): label low-wLvl TU uniques (e.g. Razordisk) correctly (d9b6904)
+
+### Features
+
+- Feat(updater): add GitHub Releases auto-updater (b872d31)
+- Feat(filter): highlight matched stat line in drop notifications (5b198b3)
+- Feat(sound): play drop notification sounds with master volume (b821569)
+- Feat(notifications): improve drop rendering and settings preview (de19ced)
+
+## v1.6.0 — 2026-04-21
+
+### Bug Fixes
+
 - Fix(ui): sync header version with package.json at build time (79741a8)
 - Eliminate loot-filter label flicker on fresh drops (bff0c0d)
 - Fix reattach bug (37374c0)
 - Survive project restart without re-launching Diablo II (4f3ed6d)
-- Fix loot filter not syncing to scanner after profile load/save (d8dacab)
 
 ### CI
 
@@ -546,17 +559,25 @@
 - Move drop notifications to top-left and hide overlay window border (c0be59c)
 - Redesign drop notification layout and drop the `name` filter flag (b67fd52)
 - Normalize autocomplete dictionary and version the items cache (12ae0fb)
+
+### Features
+
+- Add hold-hotkey overlay editor to reposition drop notifications (7a645a8)
+- Add uniques and set items to autocomplete dictionary (863a50f)
+- Add items autocomplete to loot-filter rules editor (00c7341)
+
+## v1.5.0 — 2026-04-19
+
+### Bug Fixes
+
+- Fix loot filter not syncing to scanner after profile load/save (d8dacab)
+
+### Changes
+
 - Removed docs (313fcfb)
 
 ### Features
 
-- Feat(updater): add GitHub Releases auto-updater (b872d31)
-- Feat(filter): highlight matched stat line in drop notifications (5b198b3)
-- Feat(sound): play drop notification sounds with master volume (b821569)
-- Feat(notifications): improve drop rendering and settings preview (de19ced)
-- Add hold-hotkey overlay editor to reposition drop notifications (7a645a8)
-- Add uniques and set items to autocomplete dictionary (863a50f)
-- Add items autocomplete to loot-filter rules editor (00c7341)
 - Support multi-quality/tier OR-matching and base_name regex (915f96a)
 - Implement MedianXL tier detection (C2 fix) (bea784d)
 - Add force-show filter mode and reduce scanner overhead (a476716)
