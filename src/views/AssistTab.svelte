@@ -484,9 +484,6 @@
     <div class="section-header-row">
       <div>
         <h2 class="section-title">自动拾取配置 (Auto Pickup)</h2>
-        <span class="setting-hint"
-          >基于原生游戏封包极速拾取地面物品，支持入包、优先存入方块、自动补入腰带。具备全自动容量校验与双阶段防卡光标机制（单机无封号检测）。</span
-        >
       </div>
       <Toggle checked={autoPickup.enabled} onchange={handleAutoPickupMasterToggle} />
     </div>
