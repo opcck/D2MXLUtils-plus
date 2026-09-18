@@ -221,6 +221,36 @@ pub struct AppSettings {
     /// Auto pickup configuration
     #[serde(default = "default_auto_pickup")]
     pub auto_pickup: AutoPickupSettings,
+
+    /// Monster info (name, Class ID, 6-element resistances) hook settings.
+    #[serde(default = "default_monster_info")]
+    pub monster_info: MonsterInfoSettings,
+
+    /// Item extra info (UID, CID, sockets, ethereal) hook settings.
+    #[serde(default = "default_item_extra_info")]
+    pub item_extra_info: ItemExtraInfoSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonsterInfoSettings {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_true")]
+    pub show_id: bool,
+    #[serde(default = "default_monster_info_hotkey")]
+    pub hotkey: Option<HotkeyConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ItemExtraInfoSettings {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_true")]
+    pub show_sockets_and_eth: bool,
+    #[serde(default = "default_item_extra_info_hotkey")]
+    pub hotkey: Option<HotkeyConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -421,6 +451,8 @@ impl Default for AppSettings {
             remove_shadows: default_remove_shadows(),
             auto_potion: default_auto_potion(),
             auto_pickup: default_auto_pickup(),
+            monster_info: default_monster_info(),
+            item_extra_info: default_item_extra_info(),
         }
     }
 }
@@ -503,6 +535,42 @@ fn default_auto_pickup() -> AutoPickupSettings {
         hotkey: default_auto_pickup_hotkey(),
         pickup_distance: default_auto_pickup_distance(),
         rules_text: default_auto_pickup_rules(),
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_monster_info_hotkey() -> Option<HotkeyConfig> {
+    Some(HotkeyConfig {
+        key_code: 0xDD, // VK_OEM_6 (])
+        modifiers: 0,
+        display: "]".to_string(),
+    })
+}
+
+fn default_monster_info() -> MonsterInfoSettings {
+    MonsterInfoSettings {
+        enabled: true,
+        show_id: true,
+        hotkey: default_monster_info_hotkey(),
+    }
+}
+
+fn default_item_extra_info_hotkey() -> Option<HotkeyConfig> {
+    Some(HotkeyConfig {
+        key_code: 0xDB, // VK_OEM_4 ([)
+        modifiers: 0,
+        display: "[".to_string(),
+    })
+}
+
+fn default_item_extra_info() -> ItemExtraInfoSettings {
+    ItemExtraInfoSettings {
+        enabled: true,
+        show_sockets_and_eth: true,
+        hotkey: default_item_extra_info_hotkey(),
     }
 }
 

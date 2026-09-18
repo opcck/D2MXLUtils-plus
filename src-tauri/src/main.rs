@@ -13,11 +13,13 @@ mod dps;
 mod game_create;
 mod hotkeys;
 mod injection;
+mod item_extra_info;
 mod item_search;
 mod logger;
 mod loot_history;
 mod map_markers;
 mod migrations;
+mod monster_info;
 mod monster_radar;
 mod notifier;
 mod offsets;
@@ -268,6 +270,10 @@ fn main() {
             let combat_tweaks_state = combat_tweaks::CombatTweaksState::new();
             let monster_radar_state = monster_radar::MonsterRadarState::new();
             let shadow_tweak_state = shadow_tweak::ShadowTweakState::new();
+            let monster_info_state = monster_info::MonsterInfoState::new();
+            let monster_info_hotkey_state = monster_info::MonsterInfoHotkeyState::new();
+            let item_extra_info_state = item_extra_info::ItemExtraInfoState::new();
+            let item_extra_info_hotkey_state = item_extra_info::ItemExtraInfoHotkeyState::new();
 
             // Load settings and start hotkey listener
             let app_handle_for_hotkeys = app.handle().clone();
@@ -277,6 +283,8 @@ fn main() {
             let app_handle_for_item_search = app.handle().clone();
             let app_handle_for_dps_reset = app.handle().clone();
             let app_handle_for_auto_pickup = app.handle().clone();
+            let app_handle_for_monster_info = app.handle().clone();
+            let app_handle_for_item_extra_info = app.handle().clone();
             match settings::load_settings(app.handle().clone()) {
                 Ok(loaded_settings) => {
                     hotkey_state
@@ -335,6 +343,23 @@ fn main() {
                     if let Ok(mut tweak) = shadow_tweak_state.tweak.lock() {
                         tweak.enabled = loaded_settings.remove_shadows;
                     }
+                    monster_info_hotkey_state.start(
+                        app_handle_for_monster_info.clone(),
+                        loaded_settings.monster_info.hotkey.clone(),
+                    );
+                    if let Ok(mut mi) = monster_info_state.hook.lock() {
+                        mi.enabled = loaded_settings.monster_info.enabled;
+                        mi.show_id = loaded_settings.monster_info.show_id;
+                    }
+                    item_extra_info_hotkey_state.start(
+                        app_handle_for_item_extra_info.clone(),
+                        loaded_settings.item_extra_info.hotkey.clone(),
+                    );
+                    if let Ok(mut iei) = item_extra_info_state.hook.lock() {
+                        iei.enabled = loaded_settings.item_extra_info.enabled;
+                        iei.show_sockets_and_eth =
+                            loaded_settings.item_extra_info.show_sockets_and_eth;
+                    }
                     auto_potion_state.update_settings(loaded_settings.auto_potion);
                 }
                 Err(e) => {
@@ -379,6 +404,20 @@ fn main() {
                     if let Ok(mut tweak) = shadow_tweak_state.tweak.lock() {
                         tweak.enabled = defaults.remove_shadows;
                     }
+                    monster_info_hotkey_state
+                        .start(app_handle_for_monster_info, defaults.monster_info.hotkey);
+                    if let Ok(mut mi) = monster_info_state.hook.lock() {
+                        mi.enabled = defaults.monster_info.enabled;
+                        mi.show_id = defaults.monster_info.show_id;
+                    }
+                    item_extra_info_hotkey_state.start(
+                        app_handle_for_item_extra_info,
+                        defaults.item_extra_info.hotkey,
+                    );
+                    if let Ok(mut iei) = item_extra_info_state.hook.lock() {
+                        iei.enabled = defaults.item_extra_info.enabled;
+                        iei.show_sockets_and_eth = defaults.item_extra_info.show_sockets_and_eth;
+                    }
                     auto_potion_state.update_settings(defaults.auto_potion);
                 }
             }
@@ -397,6 +436,10 @@ fn main() {
             app.manage(combat_tweaks_state);
             app.manage(monster_radar_state);
             app.manage(shadow_tweak_state);
+            app.manage(monster_info_state);
+            app.manage(monster_info_hotkey_state);
+            app.manage(item_extra_info_state);
+            app.manage(item_extra_info_hotkey_state);
 
             // Spawn auto-scanner monitor
             let app_handle = app.handle().clone();
@@ -536,7 +579,13 @@ fn main() {
             auto_potion::update_auto_potion_settings,
             auto_pickup::toggle_auto_pickup,
             auto_pickup::update_auto_pickup_rules,
-            auto_pickup::update_auto_pickup_hotkey
+            auto_pickup::update_auto_pickup_hotkey,
+            monster_info::toggle_monster_info,
+            monster_info::set_monster_info_show_id,
+            monster_info::update_monster_info_hotkey,
+            item_extra_info::toggle_item_extra_info,
+            item_extra_info::set_item_extra_info_show_sockets_and_eth,
+            item_extra_info::update_item_extra_info_hotkey
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

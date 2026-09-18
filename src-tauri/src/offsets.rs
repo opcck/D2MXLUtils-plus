@@ -197,6 +197,62 @@ pub mod d2sigma {
     pub const DRAW_MONSTER_BLOB_PATCH_SIZE: usize = 8;
     pub const DRAW_MONSTER_BLOB_ORIGINAL_BYTES: [u8; DRAW_MONSTER_BLOB_PATCH_SIZE] =
         [0x8B, 0x43, 0x0C, 0x25, 0x00, 0x03, 0x00, 0x00];
+
+    /// Known version offsets for Monster Info and Item Extra Info
+    pub struct SigmaVersionOffsets {
+        pub timestamp: u32,
+        pub get_item_name: usize,
+        pub boss_lifebar_call_units_get_name: usize,
+        pub monster_lifebar_call_units_get_name: usize,
+        pub check_is_monster_should_display_lifebar: usize,
+        pub units_get_name: usize,
+    }
+
+    /// Default known offsets table across Median XL releases
+    pub const SIGMA_OFFSETS_2_14_3: SigmaVersionOffsets = SigmaVersionOffsets {
+        timestamp: 0x6AABB2F7,
+        get_item_name: 0x70A00,
+        boss_lifebar_call_units_get_name: 0x80D1B,
+        monster_lifebar_call_units_get_name: 0x802B7,
+        check_is_monster_should_display_lifebar: 0x8010A,
+        units_get_name: 0xBC3F0,
+    };
+
+    pub const SIGMA_OFFSETS_2_14_2: SigmaVersionOffsets = SigmaVersionOffsets {
+        timestamp: 0x6AA069AD,
+        get_item_name: 0x70810,
+        boss_lifebar_call_units_get_name: 0x80AFB,
+        monster_lifebar_call_units_get_name: 0x80097,
+        check_is_monster_should_display_lifebar: 0x7FEEA,
+        units_get_name: 0xBC1C0,
+    };
+
+    pub const SIGMA_OFFSETS_2_10_3: SigmaVersionOffsets = SigmaVersionOffsets {
+        timestamp: 0x673ECCE8,
+        get_item_name: 0x90610,
+        boss_lifebar_call_units_get_name: 0x9FABB,
+        monster_lifebar_call_units_get_name: 0x9F0A8,
+        check_is_monster_should_display_lifebar: 0x9EEF9,
+        units_get_name: 0xD26A0,
+    };
+
+    pub const SIGMA_OFFSETS_2_10: SigmaVersionOffsets = SigmaVersionOffsets {
+        timestamp: 0x6724FDBD,
+        get_item_name: 0x872F0,
+        boss_lifebar_call_units_get_name: 0x967AB,
+        monster_lifebar_call_units_get_name: 0x95D98,
+        check_is_monster_should_display_lifebar: 0x95BE9,
+        units_get_name: 0xC9BC0,
+    };
+
+    pub const SIGMA_OFFSETS_2_9_2: SigmaVersionOffsets = SigmaVersionOffsets {
+        timestamp: 0x663D01B3,
+        get_item_name: 0x811B0,
+        boss_lifebar_call_units_get_name: 0x8FFCB,
+        monster_lifebar_call_units_get_name: 0x8F5AC,
+        check_is_monster_should_display_lifebar: 0x8F3FD,
+        units_get_name: 0xB8A20,
+    };
 }
 
 /// D2Lang.dll offsets

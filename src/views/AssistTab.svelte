@@ -8,6 +8,8 @@
     type AutoPotionSlotConfig,
     type AutoPotionTarget,
     type AutoPickupSettings,
+    type MonsterInfoSettings,
+    type ItemExtraInfoSettings,
   } from '../stores';
 
   interface PlayerVitals {
@@ -27,6 +29,8 @@
   let removeShadows = $derived(settingsStore.settings.removeShadows);
   let autoPotion = $derived(settingsStore.settings.autoPotion);
   let autoPickup = $derived(settingsStore.settings.autoPickup);
+  let monsterInfo = $derived(settingsStore.settings.monsterInfo);
+  let itemExtraInfo = $derived(settingsStore.settings.itemExtraInfo);
 
   // Live vitals from backend
   let vitals = $state<PlayerVitals | null>(null);
@@ -39,6 +43,10 @@
   let isSavingRules = $state(false);
   let rulesSaveSuccess = $state(false);
   let recordingPickupHotkey = $state(false);
+
+  // Monster info and Item extra info recording state
+  let recordingMonsterHotkey = $state(false);
+  let recordingItemHotkey = $state(false);
 
   // Sync initial loaded rulesText
   $effect(() => {
@@ -57,6 +65,90 @@
     });
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (recordingMonsterHotkey) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.key === 'Escape') {
+          recordingMonsterHotkey = false;
+          return;
+        }
+
+        let modifiers = 0;
+        if (e.altKey) modifiers |= 0x0001;
+        if (e.ctrlKey) modifiers |= 0x0002;
+        if (e.shiftKey) modifiers |= 0x0004;
+
+        let keyDisplay = '';
+        if (e.ctrlKey) keyDisplay += 'Ctrl+';
+        if (e.altKey) keyDisplay += 'Alt+';
+        if (e.shiftKey) keyDisplay += 'Shift+';
+
+        let name = e.key;
+        if (e.code === 'BracketLeft') name = '[';
+        else if (e.code === 'BracketRight') name = ']';
+        else if (e.code.startsWith('Key')) name = e.code.replace('Key', '');
+        else if (e.code.startsWith('Digit')) name = e.code.replace('Digit', '');
+        else if (e.code === 'PageUp') name = 'PageUp';
+        else if (e.code === 'PageDown') name = 'PageDown';
+        else if (e.key === ' ') name = 'Space';
+        keyDisplay += name;
+
+        settingsStore.setMonsterInfoSettings({
+          ...monsterInfo,
+          hotkey: {
+            keyCode: e.keyCode,
+            modifiers,
+            display: keyDisplay,
+          },
+        });
+
+        recordingMonsterHotkey = false;
+        return;
+      }
+
+      if (recordingItemHotkey) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.key === 'Escape') {
+          recordingItemHotkey = false;
+          return;
+        }
+
+        let modifiers = 0;
+        if (e.altKey) modifiers |= 0x0001;
+        if (e.ctrlKey) modifiers |= 0x0002;
+        if (e.shiftKey) modifiers |= 0x0004;
+
+        let keyDisplay = '';
+        if (e.ctrlKey) keyDisplay += 'Ctrl+';
+        if (e.altKey) keyDisplay += 'Alt+';
+        if (e.shiftKey) keyDisplay += 'Shift+';
+
+        let name = e.key;
+        if (e.code === 'BracketLeft') name = '[';
+        else if (e.code === 'BracketRight') name = ']';
+        else if (e.code.startsWith('Key')) name = e.code.replace('Key', '');
+        else if (e.code.startsWith('Digit')) name = e.code.replace('Digit', '');
+        else if (e.code === 'PageUp') name = 'PageUp';
+        else if (e.code === 'PageDown') name = 'PageDown';
+        else if (e.key === ' ') name = 'Space';
+        keyDisplay += name;
+
+        settingsStore.setItemExtraInfoSettings({
+          ...itemExtraInfo,
+          hotkey: {
+            keyCode: e.keyCode,
+            modifiers,
+            display: keyDisplay,
+          },
+        });
+
+        recordingItemHotkey = false;
+        return;
+      }
+
       if (recordingPickupHotkey) {
         e.preventDefault();
         e.stopPropagation();
@@ -77,7 +169,9 @@
         if (e.shiftKey) keyDisplay += 'Shift+';
 
         let name = e.key;
-        if (e.code.startsWith('Key')) name = e.code.replace('Key', '');
+        if (e.code === 'BracketLeft') name = '[';
+        else if (e.code === 'BracketRight') name = ']';
+        else if (e.code.startsWith('Key')) name = e.code.replace('Key', '');
         else if (e.code.startsWith('Digit')) name = e.code.replace('Digit', '');
         else if (e.code === 'PageUp') name = 'PageUp';
         else if (e.code === 'PageDown') name = 'PageDown';
@@ -323,6 +417,58 @@
       pickupRulesText = defaultRules;
       await handleSaveRules();
     }
+  }
+
+  // Monster Info Handlers
+  function handleMonsterInfoMasterToggle(enabled: boolean) {
+    settingsStore.setMonsterInfoEnabled(enabled);
+  }
+
+  function handleMonsterInfoShowClassIdToggle(showClassId: boolean) {
+    settingsStore.setMonsterInfoSettings({
+      ...monsterInfo,
+      showClassId,
+    });
+  }
+
+  function startRecordMonsterHotkey() {
+    recordingMonsterHotkey = true;
+    recordingItemHotkey = false;
+    recordingPickupHotkey = false;
+    recordingSlotIndex = null;
+  }
+
+  function handleClearMonsterHotkey() {
+    settingsStore.setMonsterInfoSettings({
+      ...monsterInfo,
+      hotkey: null,
+    });
+  }
+
+  // Item Extra Info Handlers
+  function handleItemExtraInfoMasterToggle(enabled: boolean) {
+    settingsStore.setItemExtraInfoEnabled(enabled);
+  }
+
+  function handleItemExtraInfoShowSocketsAndEthToggle(showSocketsAndEth: boolean) {
+    settingsStore.setItemExtraInfoSettings({
+      ...itemExtraInfo,
+      showSocketsAndEth,
+    });
+  }
+
+  function startRecordItemHotkey() {
+    recordingItemHotkey = true;
+    recordingMonsterHotkey = false;
+    recordingPickupHotkey = false;
+    recordingSlotIndex = null;
+  }
+
+  function handleClearItemHotkey() {
+    settingsStore.setItemExtraInfoSettings({
+      ...itemExtraInfo,
+      hotkey: null,
+    });
   }
 </script>
 
@@ -623,6 +769,141 @@
             </div>
           </div>
         </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- 怪物信息与抗性免疫显示 (Monster Info & Resistances) -->
+  <div class="settings-section">
+    <div class="section-header-row">
+      <div>
+        <h2 class="section-title">怪物信息与抗性免疫显示 (Monster Info & Resistances)</h2>
+      </div>
+      <Toggle checked={monsterInfo.enabled} onchange={handleMonsterInfoMasterToggle} />
+    </div>
+
+    <div class="feature-container {monsterInfo.enabled ? '' : 'is-disabled'}">
+      <div class="feature-controls-grid">
+        <div class="control-item">
+          <span class="control-label">游戏内实时开关快捷键</span>
+          <div class="hotkey-wrapper">
+            <button
+              type="button"
+              class="hotkey-btn {recordingMonsterHotkey ? 'recording' : ''}"
+              onclick={startRecordMonsterHotkey}
+            >
+              {recordingMonsterHotkey
+                ? '按下按键… (Esc取消)'
+                : monsterInfo.hotkey?.display || '未设置'}
+            </button>
+            {#if monsterInfo.hotkey}
+              <button
+                type="button"
+                class="clear-btn"
+                title="清除快捷键"
+                onclick={handleClearMonsterHotkey}
+              >
+                ✕
+              </button>
+            {/if}
+          </div>
+          <span class="sub-hint"
+            >游戏内按此键可无缝切换开启/关闭状态（默认快捷键为 <code>]</code>）</span
+          >
+        </div>
+
+        <div class="control-item">
+          <span class="control-label">显示怪物类别 ID (Class ID)</span>
+          <div class="sub-toggle-wrapper">
+            <Toggle
+              checked={monsterInfo.showClassId}
+              onchange={handleMonsterInfoShowClassIdToggle}
+            />
+            <span class="sub-toggle-text"
+              >开启后在怪物名称旁显示数字编号，方便对照暗黑2/MXL怪物数据</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <span class="info-icon">💡</span>
+        <div class="info-content">
+          <strong>悬停显示抗性与免疫说明：</strong>
+          鼠标悬停在怪物顶部血条时，自动提取六系抗性：
+          <span class="res-tag res-phys">物 (Phys)</span>
+          <span class="res-tag res-magic">魔 (Magic)</span>
+          <span class="res-tag res-fire">火 (Fire)</span>
+          <span class="res-tag res-ltng">电 (Ltng)</span>
+          <span class="res-tag res-cold">冰 (Cold)</span>
+          <span class="res-tag res-pois">毒 (Pois)</span>。 抗性达到或超过 100%
+          时自动以特殊高亮彩色标明“免疫”，全分辨率/宽屏无缝适配。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 物品额外信息显示 (Item Extra Info) -->
+  <div class="settings-section">
+    <div class="section-header-row">
+      <div>
+        <h2 class="section-title">物品额外信息显示 (Item Extra Info)</h2>
+      </div>
+      <Toggle checked={itemExtraInfo.enabled} onchange={handleItemExtraInfoMasterToggle} />
+    </div>
+
+    <div class="feature-container {itemExtraInfo.enabled ? '' : 'is-disabled'}">
+      <div class="feature-controls-grid">
+        <div class="control-item">
+          <span class="control-label">游戏内实时开关快捷键</span>
+          <div class="hotkey-wrapper">
+            <button
+              type="button"
+              class="hotkey-btn {recordingItemHotkey ? 'recording' : ''}"
+              onclick={startRecordItemHotkey}
+            >
+              {recordingItemHotkey
+                ? '按下按键… (Esc取消)'
+                : itemExtraInfo.hotkey?.display || '未设置'}
+            </button>
+            {#if itemExtraInfo.hotkey}
+              <button
+                type="button"
+                class="clear-btn"
+                title="清除快捷键"
+                onclick={handleClearItemHotkey}
+              >
+                ✕
+              </button>
+            {/if}
+          </div>
+          <span class="sub-hint"
+            >游戏内按此键可无缝切换开启/关闭状态（默认快捷键为 <code>[</code>）</span
+          >
+        </div>
+
+        <div class="control-item">
+          <span class="control-label">名称后标注孔数与无形状态</span>
+          <div class="sub-toggle-wrapper">
+            <Toggle
+              checked={itemExtraInfo.showSocketsAndEth}
+              onchange={handleItemExtraInfoShowSocketsAndEthToggle}
+            />
+            <span class="sub-toggle-text"
+              >开启后在物品名后自动追加 <code>(4s)</code> 孔数与 <code>(eth)</code> 无形标记</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <span class="info-icon">🔍</span>
+        <div class="info-content">
+          <strong>物品 ID 显示说明：</strong>
+          在地面的物品名牌与鼠标悬停物品 Tooltip 上，首行前置显示物品唯一识别码
+          <code>UID:0x...</code> 与类别编号
+          <code>CID:...</code>，方便确认物品底层代码与精准编写拾取/过滤规则。
+        </div>
       </div>
     </div>
   </div>
@@ -1200,5 +1481,123 @@
     border-radius: 3px;
     font-family: var(--font-mono);
     color: var(--accent-primary, #60a5fa);
+  }
+
+  /* 通用功能卡片与说明样式 */
+  .feature-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+    transition: opacity 0.2s ease;
+  }
+
+  .feature-container.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .feature-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+  }
+
+  .sub-toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-1);
+  }
+
+  .sub-toggle-text {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .info-banner {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  .info-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .info-content {
+    flex: 1;
+  }
+
+  .info-content strong {
+    color: var(--text-primary);
+    margin-right: var(--space-1);
+  }
+
+  .info-content code {
+    background: var(--bg-secondary);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    color: var(--accent-primary, #60a5fa);
+  }
+
+  /* 游戏原生六系抗性彩色标签 */
+  .res-tag {
+    display: inline-block;
+    padding: 0 5px;
+    margin: 0 2px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  .res-tag.res-phys {
+    background: rgba(178, 190, 195, 0.2);
+    color: #dfe6e9;
+    border: 1px solid rgba(178, 190, 195, 0.4);
+  }
+
+  .res-tag.res-magic {
+    background: rgba(232, 67, 147, 0.2);
+    color: #fd79a8;
+    border: 1px solid rgba(232, 67, 147, 0.4);
+  }
+
+  .res-tag.res-fire {
+    background: rgba(225, 112, 85, 0.2);
+    color: #ff7675;
+    border: 1px solid rgba(225, 112, 85, 0.4);
+  }
+
+  .res-tag.res-ltng {
+    background: rgba(253, 203, 110, 0.2);
+    color: #ffeaa7;
+    border: 1px solid rgba(253, 203, 110, 0.4);
+  }
+
+  .res-tag.res-cold {
+    background: rgba(116, 185, 255, 0.2);
+    color: #74b9ff;
+    border: 1px solid rgba(116, 185, 255, 0.4);
+  }
+
+  .res-tag.res-pois {
+    background: rgba(85, 239, 196, 0.2);
+    color: #55efc4;
+    border: 1px solid rgba(85, 239, 196, 0.4);
   }
 </style>

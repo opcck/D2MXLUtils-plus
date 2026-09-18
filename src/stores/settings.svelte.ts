@@ -43,6 +43,18 @@ export interface DpsMeterSettings {
   hotkeyReset: HotkeyConfig | null;
 }
 
+export interface MonsterInfoSettings {
+  enabled: boolean;
+  hotkey: HotkeyConfig | null;
+  showClassId: boolean;
+}
+
+export interface ItemExtraInfoSettings {
+  enabled: boolean;
+  hotkey: HotkeyConfig | null;
+  showSocketsAndEth: boolean;
+}
+
 /** Application settings interface */
 export interface AppSettings {
   /** UI theme: "dark" or "light" */
@@ -116,6 +128,8 @@ export interface AppSettings {
   removeShadows: boolean;
   autoPotion: AutoPotionSettings;
   autoPickup: AutoPickupSettings;
+  monsterInfo: MonsterInfoSettings;
+  itemExtraInfo: ItemExtraInfoSettings;
 }
 
 export interface AutoPickupSettings {
@@ -186,6 +200,18 @@ const DEFAULT_AUTO_PICKUP_HOTKEY: HotkeyConfig = {
   keyCode: 0x21,
   modifiers: 0,
   display: 'PgUp',
+};
+
+const DEFAULT_MONSTER_INFO_HOTKEY: HotkeyConfig = {
+  keyCode: 0xdd,
+  modifiers: 0,
+  display: ']',
+};
+
+const DEFAULT_ITEM_EXTRA_INFO_HOTKEY: HotkeyConfig = {
+  keyCode: 0xdb,
+  modifiers: 0,
+  display: '[',
 };
 
 const DEFAULT_GAME_CREATE_AUTOFILL_HOTKEY: HotkeyConfig = {
@@ -277,6 +303,16 @@ const DEFAULT_SETTINGS: AppSettings = {
     pickupDistance: 5.0,
     rulesText: '',
   },
+  monsterInfo: {
+    enabled: true,
+    hotkey: DEFAULT_MONSTER_INFO_HOTKEY,
+    showClassId: true,
+  },
+  itemExtraInfo: {
+    enabled: true,
+    hotkey: DEFAULT_ITEM_EXTRA_INFO_HOTKEY,
+    showSocketsAndEth: true,
+  },
 };
 
 /** Settings store singleton */
@@ -290,6 +326,8 @@ class SettingsStore {
   private _dirtyKeys = new Set<keyof AppSettings>();
   private _syncUnlisten: UnlistenFn | null = null;
   private _autoPickupUnlisten: UnlistenFn | null = null;
+  private _monsterInfoUnlisten: UnlistenFn | null = null;
+  private _itemExtraInfoUnlisten: UnlistenFn | null = null;
 
   /** Current settings (reactive) */
   get settings(): AppSettings {
@@ -406,6 +444,24 @@ class SettingsStore {
         };
       });
     }
+
+    if (!this._monsterInfoUnlisten) {
+      this._monsterInfoUnlisten = await listen<boolean>('monster-info-toggled', (event) => {
+        this._settings.monsterInfo = {
+          ...this._settings.monsterInfo,
+          enabled: event.payload,
+        };
+      });
+    }
+
+    if (!this._itemExtraInfoUnlisten) {
+      this._itemExtraInfoUnlisten = await listen<boolean>('item-extra-info-toggled', (event) => {
+        this._settings.itemExtraInfo = {
+          ...this._settings.itemExtraInfo,
+          enabled: event.payload,
+        };
+      });
+    }
   }
 
   /** Tear down the cross-window sync listener. */
@@ -417,6 +473,14 @@ class SettingsStore {
     if (this._autoPickupUnlisten) {
       this._autoPickupUnlisten();
       this._autoPickupUnlisten = null;
+    }
+    if (this._monsterInfoUnlisten) {
+      this._monsterInfoUnlisten();
+      this._monsterInfoUnlisten = null;
+    }
+    if (this._itemExtraInfoUnlisten) {
+      this._itemExtraInfoUnlisten();
+      this._itemExtraInfoUnlisten = null;
     }
   }
 
@@ -743,6 +807,56 @@ class SettingsStore {
       await invoke('update_auto_pickup_hotkey', { hotkey: autoPickup.hotkey });
     } catch (error) {
       console.error('[Settings] Failed to update auto pickup settings:', error);
+    }
+  }
+
+  async setMonsterInfoEnabled(enabled: boolean): Promise<void> {
+    this._settings.monsterInfo = {
+      ...this._settings.monsterInfo,
+      enabled,
+    };
+    this._dirtyKeys.add('monsterInfo');
+    this.save();
+    try {
+      await invoke('toggle_monster_info', { enabled });
+    } catch (error) {
+      console.error('[Settings] Failed to toggle monster info:', error);
+    }
+  }
+
+  async setMonsterInfoSettings(monsterInfo: MonsterInfoSettings): Promise<void> {
+    this.set('monsterInfo', monsterInfo);
+    try {
+      await invoke('toggle_monster_info', { enabled: monsterInfo.enabled });
+      await invoke('update_monster_info_settings', { settings: monsterInfo });
+      await invoke('update_monster_info_hotkey', { hotkey: monsterInfo.hotkey });
+    } catch (error) {
+      console.error('[Settings] Failed to update monster info settings:', error);
+    }
+  }
+
+  async setItemExtraInfoEnabled(enabled: boolean): Promise<void> {
+    this._settings.itemExtraInfo = {
+      ...this._settings.itemExtraInfo,
+      enabled,
+    };
+    this._dirtyKeys.add('itemExtraInfo');
+    this.save();
+    try {
+      await invoke('toggle_item_extra_info', { enabled });
+    } catch (error) {
+      console.error('[Settings] Failed to toggle item extra info:', error);
+    }
+  }
+
+  async setItemExtraInfoSettings(itemExtraInfo: ItemExtraInfoSettings): Promise<void> {
+    this.set('itemExtraInfo', itemExtraInfo);
+    try {
+      await invoke('toggle_item_extra_info', { enabled: itemExtraInfo.enabled });
+      await invoke('update_item_extra_info_settings', { settings: itemExtraInfo });
+      await invoke('update_item_extra_info_hotkey', { hotkey: itemExtraInfo.hotkey });
+    } catch (error) {
+      console.error('[Settings] Failed to update item extra info settings:', error);
     }
   }
 }
