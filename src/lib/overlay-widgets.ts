@@ -14,6 +14,7 @@ export const OVERLAY_POSITION_DEFAULTS = {
   'dps-meter': { x: 1, y: 1 },
   'loot-history': { x: 50, y: 25 },
   'item-search': { x: 30, y: 16 },
+  inspector: { x: 75, y: 1 },
 } as const;
 
 export type OverlayPositionId = keyof typeof OVERLAY_POSITION_DEFAULTS;
@@ -36,6 +37,11 @@ export const OVERLAY_WIDGETS = [
     id: 'dps-meter',
     label: '秒伤统计 (DPS)',
     ghostSize: { width: 130, height: 110 },
+  },
+  {
+    id: 'inspector',
+    label: '目标信息与抗性',
+    ghostSize: { width: 220, height: 135 },
   },
 ] as const satisfies readonly OverlayWidgetSpec[];
 

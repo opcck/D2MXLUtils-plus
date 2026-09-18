@@ -57,6 +57,10 @@
   let dpsMeterEnabled = $derived(settingsStore.settings.dpsMeter?.enabled ?? false);
   let dpsMeterVisible = $derived(dpsMeterEnabled && inGame);
 
+  let monsterInfoEnabled = $derived(settingsStore.settings.monsterInfo?.enabled ?? false);
+  let itemExtraInfoEnabled = $derived(settingsStore.settings.itemExtraInfo?.enabled ?? false);
+  let inspectorVisible = $derived((monsterInfoEnabled || itemExtraInfoEnabled) && inGame);
+
   const EXIT_ANIMATION_DURATION = 0;
 
   const removalTimers = new Map<number, number>();
@@ -201,7 +205,9 @@
     {showOnlyMatchedStats}
   />
   <AlwaysShowItemsIndicator />
-  <InspectorHud />
+  {#if inspectorVisible}
+    <InspectorHud />
+  {/if}
   <ItemSearchOverlay
     onActiveChange={(active) => {
       itemSearchActive = active;

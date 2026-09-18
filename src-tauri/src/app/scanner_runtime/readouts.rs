@@ -214,10 +214,18 @@ pub(super) fn sample_inspector(
     let current = match current {
         Some(m) => Some(m),
         None if item_extra_info_enabled => {
-            crate::item_search::read_hovered_item_detail(shared_state)
-                .ok()
-                .flatten()
-                .map(crate::inspector::InspectPayload::Item)
+            let ground_item = {
+                let injector = shared_state.injector.lock().unwrap();
+                crate::inspector::sample_hovered_ground_item(&shared_state.ctx, &injector)
+            };
+            if let Some(item) = ground_item {
+                Some(crate::inspector::InspectPayload::Item(item))
+            } else {
+                crate::item_search::read_hovered_item_detail(shared_state)
+                    .ok()
+                    .flatten()
+                    .map(crate::inspector::InspectPayload::Item)
+            }
         }
         None => None,
     };

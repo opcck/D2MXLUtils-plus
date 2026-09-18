@@ -119,3 +119,86 @@ pub fn sample_hovered_monster(
         pr: stats.get(&45).copied().unwrap_or(0),
     })
 }
+
+pub fn sample_hovered_ground_item(
+    ctx: &D2Context,
+    injector: &D2Injector,
+) -> Option<ItemInspectData> {
+    let p_unit = ctx
+        .process
+        .read_memory::<u32>(ctx.d2_client + offsets::d2client::SELECTED_UNIT)
+        .ok()?;
+    if p_unit == 0 {
+        return None;
+    }
+
+    let unit_type = ctx.process.read_memory::<u32>(p_unit as usize).ok()?;
+    if unit_type != offsets::unit_type::ITEM {
+        return None;
+    }
+
+    let class_id = ctx
+        .process
+        .read_memory::<u32>(p_unit as usize + offsets::unit::CLASS)
+        .ok()?;
+    let unit_id = ctx
+        .process
+        .read_memory::<u32>(p_unit as usize + offsets::unit::UNIT_ID)
+        .ok()?;
+
+    let p_unit_data = ctx
+        .process
+        .read_memory::<u32>(p_unit as usize + offsets::unit::UNIT_DATA)
+        .ok()?;
+    if p_unit_data == 0 {
+        return None;
+    }
+
+    let flags = ctx
+        .process
+        .read_memory::<u32>(p_unit_data as usize + offsets::item_data::FLAGS)
+        .unwrap_or(0);
+    let is_ethereal = (flags & 0x00400000) != 0;
+
+    let quality_raw = ctx
+        .process
+        .read_memory::<u32>(p_unit_data as usize + offsets::item_data::QUALITY)
+        .unwrap_or(2);
+    let quality = match quality_raw {
+        1 => "Inferior",
+        2 => "Normal",
+        3 => "Superior",
+        4 => "Magic",
+        5 => "Set",
+        6 => "Rare",
+        7 => "Unique",
+        8 => "Crafted",
+        9 => "Tempered",
+        _ => "Normal",
+    }
+    .to_string();
+
+    let reader = UnitStatsReader::new(&ctx.process, ctx.d2_common, p_unit);
+    let sockets = match reader.read_stat(194, 0) {
+        Ok(crate::unit_stats_reader::StatReadResult::Found(val)) => val.max(0) as u32,
+        _ => 0,
+    };
+
+    let raw = injector
+        .get_item_name(&ctx.process, p_unit)
+        .unwrap_or_default();
+    let name = if !raw.is_empty() {
+        crate::item_search::display_name_from_raw_item_name(&raw).unwrap_or(raw)
+    } else {
+        format!("Item #{class_id}")
+    };
+
+    Some(ItemInspectData {
+        name,
+        class_id,
+        unit_id,
+        quality,
+        sockets,
+        is_ethereal,
+    })
+}
