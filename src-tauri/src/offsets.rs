@@ -20,7 +20,11 @@ pub mod d2client {
     /// `docs/map-marker-reverse-engineering.md`.
     pub const AUTOMAP_LAYER: usize = 0x11C1C4;
 
-    /// Currently selected/hovered unit under cursor (dword → UnitAny*)
+    /// Selected/hovered unit under cursor
+    pub const SELECTED_UNIT_ACTIVE: usize = 0x11C2F4;
+    pub const SELECTED_UNIT_TYPE: usize = 0x11964C;
+    pub const SELECTED_UNIT_ID: usize = 0x119638;
+    pub const CLIENT_UNIT_TABLE: usize = 0x10A608;
     pub const SELECTED_UNIT: usize = 0x11C1D8;
 
     /// Current game difficulty as `u32`: `0=Normal, 1=Nightmare, 2=Hell`.

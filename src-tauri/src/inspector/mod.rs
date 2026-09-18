@@ -42,19 +42,68 @@ pub enum InspectPayload {
     None,
 }
 
+pub fn get_client_unit(ctx: &D2Context, unit_id: u32, unit_type: u32) -> Option<u32> {
+    if unit_type > 5 {
+        return None;
+    }
+    let table_base =
+        ctx.d2_client + offsets::d2client::CLIENT_UNIT_TABLE + (unit_type as usize * 0x200);
+    let bucket_idx = (unit_id & 0x7F) as usize;
+    let mut p_unit = ctx
+        .process
+        .read_memory::<u32>(table_base + bucket_idx * 4)
+        .ok()?;
+
+    let mut depth = 0;
+    while p_unit != 0 && depth < 128 {
+        depth += 1;
+        if let Ok(id) = ctx
+            .process
+            .read_memory::<u32>(p_unit as usize + offsets::unit::UNIT_ID)
+        {
+            if id == unit_id {
+                return Some(p_unit);
+            }
+        }
+        p_unit = ctx
+            .process
+            .read_memory::<u32>(p_unit as usize + offsets::unit::NEXT_UNIT)
+            .unwrap_or(0);
+    }
+    None
+}
+
+pub fn get_selected_unit(ctx: &D2Context) -> Option<(u32, u32)> {
+    let is_selected = ctx
+        .process
+        .read_memory::<u32>(ctx.d2_client + offsets::d2client::SELECTED_UNIT_ACTIVE)
+        .ok()?;
+    if is_selected == 0 {
+        return None;
+    }
+
+    let unit_type = ctx
+        .process
+        .read_memory::<u32>(ctx.d2_client + offsets::d2client::SELECTED_UNIT_TYPE)
+        .ok()?;
+    let unit_id = ctx
+        .process
+        .read_memory::<u32>(ctx.d2_client + offsets::d2client::SELECTED_UNIT_ID)
+        .ok()?;
+
+    if unit_id == 0 {
+        return None;
+    }
+
+    let p_unit = get_client_unit(ctx, unit_id, unit_type)?;
+    Some((p_unit, unit_type))
+}
+
 pub fn sample_hovered_monster(
     ctx: &D2Context,
     injector: &D2Injector,
 ) -> Option<MonsterInspectData> {
-    let p_unit = ctx
-        .process
-        .read_memory::<u32>(ctx.d2_client + offsets::d2client::SELECTED_UNIT)
-        .ok()?;
-    if p_unit == 0 {
-        return None;
-    }
-
-    let unit_type = ctx.process.read_memory::<u32>(p_unit as usize).ok()?;
+    let (p_unit, unit_type) = get_selected_unit(ctx)?;
     if unit_type != offsets::unit_type::MONSTER {
         return None;
     }
@@ -124,15 +173,7 @@ pub fn sample_hovered_ground_item(
     ctx: &D2Context,
     injector: &D2Injector,
 ) -> Option<ItemInspectData> {
-    let p_unit = ctx
-        .process
-        .read_memory::<u32>(ctx.d2_client + offsets::d2client::SELECTED_UNIT)
-        .ok()?;
-    if p_unit == 0 {
-        return None;
-    }
-
-    let unit_type = ctx.process.read_memory::<u32>(p_unit as usize).ok()?;
+    let (p_unit, unit_type) = get_selected_unit(ctx)?;
     if unit_type != offsets::unit_type::ITEM {
         return None;
     }
