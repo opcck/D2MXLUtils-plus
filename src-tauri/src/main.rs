@@ -2,6 +2,7 @@
 
 mod app;
 mod auto_belt;
+mod auto_pickup;
 mod auto_potion;
 mod breakpoints;
 mod combat_tweaks;
@@ -258,6 +259,8 @@ fn main() {
             let game_create_autofill_state =
                 game_create::GameCreateAutofillHotkeyState::new(game_status.clone());
             let auto_belt_state = auto_belt::AutoBeltState::new();
+            let auto_pickup_state = auto_pickup::AutoPickupState::new();
+            let auto_pickup_hotkey_state = auto_pickup::AutoPickupHotkeyState::new();
             let auto_potion_state = auto_potion::AutoPotionState::new();
             let combat_tweaks_state = combat_tweaks::CombatTweaksState::new();
             let monster_radar_state = monster_radar::MonsterRadarState::new();
@@ -270,6 +273,7 @@ fn main() {
             let app_handle_for_loot_history = app.handle().clone();
             let app_handle_for_item_search = app.handle().clone();
             let app_handle_for_dps_reset = app.handle().clone();
+            let app_handle_for_auto_pickup = app.handle().clone();
             match settings::load_settings(app.handle().clone()) {
                 Ok(loaded_settings) => {
                     hotkey_state
@@ -299,6 +303,10 @@ fn main() {
                         password_use_prefix: loaded_settings.game_create_password_use_prefix,
                         description: loaded_settings.game_create_description.clone(),
                     });
+                    auto_pickup_hotkey_state.start(
+                        app_handle_for_auto_pickup.clone(),
+                        loaded_settings.auto_pickup.hotkey.clone(),
+                    );
                     verbose_filter_logging
                         .store(loaded_settings.verbose_filter_logging, Ordering::SeqCst);
                     auto_always_show_items
@@ -307,6 +315,13 @@ fn main() {
                     auto_belt_state
                         .enabled
                         .store(loaded_settings.auto_belt, Ordering::SeqCst);
+                    auto_pickup_state
+                        .enabled
+                        .store(loaded_settings.auto_pickup.enabled, Ordering::SeqCst);
+                    if let Ok(mut dist) = auto_pickup_state.pickup_distance.lock() {
+                        *dist = loaded_settings.auto_pickup.pickup_distance;
+                    }
+                    let _ = auto_pickup_state.set_rules(&loaded_settings.auto_pickup.rules_text);
                     if let Ok(mut tweaks) = combat_tweaks_state.tweaks.lock() {
                         tweaks.enabled = loaded_settings.continuous_attack;
                     }
@@ -339,9 +354,18 @@ fn main() {
                         password_use_prefix: defaults.game_create_password_use_prefix,
                         description: defaults.game_create_description,
                     });
+                    auto_pickup_hotkey_state
+                        .start(app_handle_for_auto_pickup, defaults.auto_pickup.hotkey);
                     auto_belt_state
                         .enabled
                         .store(defaults.auto_belt, Ordering::SeqCst);
+                    auto_pickup_state
+                        .enabled
+                        .store(defaults.auto_pickup.enabled, Ordering::SeqCst);
+                    if let Ok(mut dist) = auto_pickup_state.pickup_distance.lock() {
+                        *dist = defaults.auto_pickup.pickup_distance;
+                    }
+                    let _ = auto_pickup_state.set_rules(&defaults.auto_pickup.rules_text);
                     if let Ok(mut tweaks) = combat_tweaks_state.tweaks.lock() {
                         tweaks.enabled = defaults.continuous_attack;
                     }
@@ -364,6 +388,8 @@ fn main() {
             app.manage(dps_meter_reset_state);
             app.manage(game_create_autofill_state);
             app.manage(auto_belt_state);
+            app.manage(auto_pickup_state);
+            app.manage(auto_pickup_hotkey_state);
             app.manage(auto_potion_state);
             app.manage(combat_tweaks_state);
             app.manage(monster_radar_state);
@@ -503,7 +529,10 @@ fn main() {
             combat_tweaks::toggle_continuous_attack,
             auto_belt::toggle_auto_belt,
             shadow_tweak::toggle_remove_shadows,
-            auto_potion::update_auto_potion_settings
+            auto_potion::update_auto_potion_settings,
+            auto_pickup::toggle_auto_pickup,
+            auto_pickup::update_auto_pickup_rules,
+            auto_pickup::update_auto_pickup_hotkey
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

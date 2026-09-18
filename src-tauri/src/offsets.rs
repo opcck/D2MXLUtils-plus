@@ -382,6 +382,8 @@ pub mod items_txt {
     pub const NAME_ID: usize = 0xF4; // word
     pub const STR_BONUS: usize = 0x106; // word
     pub const DEX_BONUS: usize = 0x108; // word
+    pub const INV_WIDTH: usize = 0x10F; // byte
+    pub const INV_HEIGHT: usize = 0x110; // byte
     pub const IS_2H: usize = 0x11C; // byte
     /// `wType[0]` — primary ItemTypes.txt index. Use this to resolve the
     /// item's family (`szCode`) — it differentiates families that share

@@ -7,6 +7,7 @@
     type AutoPotionSettings,
     type AutoPotionSlotConfig,
     type AutoPotionTarget,
+    type AutoPickupSettings,
   } from '../stores';
 
   interface PlayerVitals {
@@ -25,12 +26,26 @@
   let autoBelt = $derived(settingsStore.settings.autoBelt);
   let removeShadows = $derived(settingsStore.settings.removeShadows);
   let autoPotion = $derived(settingsStore.settings.autoPotion);
+  let autoPickup = $derived(settingsStore.settings.autoPickup);
 
   // Live vitals from backend
   let vitals = $state<PlayerVitals | null>(null);
 
   // Key recording state for slots
   let recordingSlotIndex = $state<number | null>(null);
+
+  // Auto pickup local state
+  let pickupRulesText = $state(settingsStore.settings.autoPickup.rulesText || '');
+  let isSavingRules = $state(false);
+  let rulesSaveSuccess = $state(false);
+  let recordingPickupHotkey = $state(false);
+
+  // Sync initial loaded rulesText
+  $effect(() => {
+    if (settingsStore.isLoaded && !pickupRulesText && settingsStore.settings.autoPickup.rulesText) {
+      pickupRulesText = settingsStore.settings.autoPickup.rulesText;
+    }
+  });
 
   let unlistenVitals: UnlistenFn | null = null;
 
@@ -42,6 +57,46 @@
     });
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (recordingPickupHotkey) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.key === 'Escape') {
+          recordingPickupHotkey = false;
+          return;
+        }
+
+        let modifiers = 0;
+        if (e.altKey) modifiers |= 0x0001;
+        if (e.ctrlKey) modifiers |= 0x0002;
+        if (e.shiftKey) modifiers |= 0x0004;
+
+        let keyDisplay = '';
+        if (e.ctrlKey) keyDisplay += 'Ctrl+';
+        if (e.altKey) keyDisplay += 'Alt+';
+        if (e.shiftKey) keyDisplay += 'Shift+';
+
+        let name = e.key;
+        if (e.code.startsWith('Key')) name = e.code.replace('Key', '');
+        else if (e.code.startsWith('Digit')) name = e.code.replace('Digit', '');
+        else if (e.code === 'PageUp') name = 'PageUp';
+        else if (e.code === 'PageDown') name = 'PageDown';
+        else if (e.key === ' ') name = 'Space';
+        keyDisplay += name;
+
+        settingsStore.setAutoPickupSettings({
+          ...autoPickup,
+          hotkey: {
+            keyCode: e.keyCode,
+            modifiers,
+            display: keyDisplay,
+          },
+        });
+
+        recordingPickupHotkey = false;
+        return;
+      }
+
       if (recordingSlotIndex === null) return;
       e.preventDefault();
       e.stopPropagation();
@@ -118,6 +173,156 @@
 
   function startRecordKey(index: number) {
     recordingSlotIndex = index;
+  }
+
+  // Auto pickup handlers
+  function handleAutoPickupMasterToggle(enabled: boolean) {
+    settingsStore.setAutoPickupEnabled(enabled);
+  }
+
+  function startRecordPickupHotkey() {
+    recordingPickupHotkey = true;
+  }
+
+  function handleClearPickupHotkey() {
+    settingsStore.setAutoPickupSettings({
+      ...autoPickup,
+      hotkey: null,
+    });
+  }
+
+  function handleDistanceChange(val: number) {
+    settingsStore.setAutoPickupSettings({
+      ...autoPickup,
+      pickupDistance: val,
+    });
+  }
+
+  async function handleSaveRules() {
+    isSavingRules = true;
+    try {
+      await settingsStore.setAutoPickupSettings({
+        ...autoPickup,
+        rulesText: pickupRulesText,
+      });
+      rulesSaveSuccess = true;
+      setTimeout(() => {
+        rulesSaveSuccess = false;
+      }, 2000);
+    } catch (e) {
+      console.error('Failed to save pickup rules:', e);
+    } finally {
+      isSavingRules = false;
+    }
+  }
+
+  async function handleResetRules() {
+    if (confirm('确定要重置自动拾取规则为默认模板吗？当前自定义编辑的内容将被覆盖。')) {
+      const defaultRules = `# ==============================================================================
+# D2MXLUtils-plus 自动拾取规则模板 (基于 HackMap 规则清洗移植)
+# 规则说明：
+# 1. 匹配机制：自底向上（倒序遍历匹配，写在越靠后的规则优先级越高）。
+# 2. 拾取行为 (pickup)：
+#    pickup = 0 -> 不捡（用于特定高价值物品防误捡保护，需手动拾取）
+#    pickup = 1 -> 直接入背包 (Inventory)
+#    pickup = 2 -> 优先放入赫拉迪克方块 (Cube，方块满自动降级入包)
+#    pickup = 3 -> 自动补入腰带药水栏 (AutoBelt，腰带满静默跳过)
+# 3. 匹配属性：
+#    match_name = 1 -> 匹配物品名称 (prop/regex)
+#    match_name = 0 -> 匹配装备词条属性 (regex)
+#    quality -> 品质 (normal / superior / magic / rare / set / unique)
+#    id -> 物品类型 Class ID
+#    socks -> 孔数，eth -> 无形
+# ==============================================================================
+
+# --- 宝石与通用圣坛 ---
+{ match_name = 1, prop = "完美的", pickup = 0 },
+{ match_name = 1, prop = "圣坛", pickup = 1 },
+
+# --- 绿色套装与暗金装备 ---
+{ quality = "set", pickup = 2 },
+{ quality = "unique", pickup = 2 },
+
+# --- 任务道具与特定符文 ---
+{ match_name = 1, prop = "符文", pickup = 1 },
+# 特殊/高价值大号符文防误捡（保护设为 0，需手动拾取）
+{ match_name = 1, prop = "查姆", pickup = 0 },
+{ match_name = 1, prop = "佐德", pickup = 0 },
+{ match_name = 1, prop = "海", pickup = 0 },
+{ match_name = 1, prop = "贝", pickup = 0 },
+{ match_name = 1, prop = "乔", pickup = 0 },
+
+# --- Median XL 特色材料与消耗品 ---
+{ match_name = 1, prop = "奥能之角", pickup = 2 },
+{ match_name = 1, prop = "神秘碎片", pickup = 2 },
+{ match_name = 1, prop = "神秘晶体", pickup = 2 },
+{ match_name = 1, prop = "催化剂", pickup = 2 },
+{ match_name = 1, prop = "光辉", pickup = 2 },
+{ match_name = 1, prop = "魔印", pickup = 2 },
+{ match_name = 1, prop = "印记", pickup = 2 },
+{ match_name = 1, prop = "徽记", pickup = 2 },
+{ match_name = 1, prop = "奇迹", pickup = 2 },
+{ match_name = 1, prop = "遗物", pickup = 2 },
+{ match_name = 1, prop = "钟楼", pickup = 2 },
+{ match_name = 1, prop = "符文之石", pickup = 2 },
+{ match_name = 1, prop = "经验之书", pickup = 2 },
+{ match_name = 1, prop = "古代之书", pickup = 2 },
+{ match_name = 1, prop = "遗忘之塔", pickup = 2 },
+{ match_name = 1, prop = "恶魔之角", pickup = 2 },
+{ match_name = 1, prop = "世界之石碎片", pickup = 2 },
+{ match_name = 1, prop = "天使之羽", pickup = 2 },
+{ match_name = 1, prop = "黑塔之钥", pickup = 2 },
+{ match_name = 1, prop = "虚空之石", pickup = 2 },
+{ match_name = 1, prop = "纳塔尔之眼", pickup = 2 },
+{ match_name = 1, prop = "恶魔之心", pickup = 2 },
+{ match_name = 1, prop = "恶魔之血", pickup = 2 },
+{ match_name = 1, prop = "恶魔之眼", pickup = 2 },
+{ match_name = 1, prop = "恶魔之脑", pickup = 2 },
+{ match_name = 1, prop = "恶魔之爪", pickup = 2 },
+{ match_name = 1, prop = "恶魔之翼", pickup = 2 },
+{ match_name = 1, prop = "恶魔之牙", pickup = 2 },
+{ match_name = 1, prop = "恶魔之尾", pickup = 2 },
+{ match_name = 1, prop = "恶魔之角", pickup = 2 },
+{ match_name = 1, prop = "恶魔之骨", pickup = 2 },
+{ match_name = 1, prop = "恶魔之皮", pickup = 2 },
+{ match_name = 1, prop = "恶魔之肉", pickup = 2 },
+{ match_name = 1, prop = "恶魔之魂", pickup = 2 },
+{ match_name = 1, prop = "恶魔之影", pickup = 2 },
+{ match_name = 1, prop = "恶魔之核", pickup = 2 },
+{ match_name = 1, prop = "恶魔之精", pickup = 2 },
+{ match_name = 1, prop = "恶魔之息", pickup = 2 },
+{ match_name = 1, prop = "恶魔之源", pickup = 2 },
+{ match_name = 1, prop = "恶魔之血", pickup = 2 },
+{ match_name = 1, prop = "恶魔之灵", pickup = 2 },
+
+# --- 常用药水与消耗品 ---
+# 恢复活力药水
+{ match_name = 1, prop = "恢复活力药水", pickup = 2 },
+# 生命/法力药水优先自动补入腰带 (AutoBelt)
+{ match_name = 1, prop = "治疗药水", pickup = 3 },
+{ match_name = 1, prop = "法力药水", pickup = 3 },
+{ match_name = 1, prop = "超强治疗药水", pickup = 3 },
+{ match_name = 1, prop = "超强法力药水", pickup = 3 },
+
+# --- 卷轴与金币 ---
+{ match_name = 1, prop = "辨识卷轴", pickup = 1 },
+{ match_name = 1, prop = "城镇传送卷轴", pickup = 1 },
+{ match_name = 1, prop = "金币", pickup = 1 },
+
+# --- 稀有专属草药与材料 ---
+{ match_name = 1, prop = "Belladonna Extract", pickup = 2 },
+{ match_name = 1, prop = "Sunless Crystal", pickup = 2 },
+{ match_name = 1, prop = "Arcane Shard", pickup = 2 },
+{ match_name = 1, prop = "Arcane Crystal", pickup = 2 },
+{ match_name = 1, prop = "Oil of", pickup = 2 },
+{ match_name = 1, prop = "Signet of", pickup = 2 },
+{ match_name = 1, prop = "Apple", pickup = 2 },
+{ match_name = 1, prop = "Trance Herb", pickup = 2 },
+{ match_name = 1, prop = "骨堆", pickup = 2 },
+`;
+      pickupRulesText = defaultRules;
+      await handleSaveRules();
+    }
   }
 </script>
 
@@ -271,6 +476,157 @@
           </div>
         </div>
       {/each}
+    </div>
+  </div>
+
+  <!-- 自动拾取配置卡片 (Auto Pickup) -->
+  <div class="settings-section">
+    <div class="section-header-row">
+      <div>
+        <h2 class="section-title">自动拾取配置 (Auto Pickup)</h2>
+        <span class="setting-hint"
+          >基于原生游戏封包极速拾取地面物品，支持入包、优先存入方块、自动补入腰带。具备全自动容量校验与双阶段防卡光标机制（单机无封号检测）。</span
+        >
+      </div>
+      <Toggle checked={autoPickup.enabled} onchange={handleAutoPickupMasterToggle} />
+    </div>
+
+    <div class="pickup-container {autoPickup.enabled ? '' : 'is-disabled'}">
+      <!-- 快捷键与距离调节控制行 -->
+      <div class="pickup-controls-grid">
+        <div class="control-item">
+          <span class="control-label">游戏内实时开关快捷键</span>
+          <div class="hotkey-wrapper">
+            <button
+              type="button"
+              class="hotkey-btn {recordingPickupHotkey ? 'recording' : ''}"
+              onclick={startRecordPickupHotkey}
+            >
+              {recordingPickupHotkey
+                ? '按下按键… (Esc取消)'
+                : autoPickup.hotkey?.display || '未设置'}
+            </button>
+            {#if autoPickup.hotkey}
+              <button
+                type="button"
+                class="clear-btn"
+                title="清除快捷键"
+                onclick={handleClearPickupHotkey}
+              >
+                ✕
+              </button>
+            {/if}
+          </div>
+          <span class="sub-hint">游戏内按此键可无缝切换开启/关闭状态</span>
+        </div>
+
+        <div class="control-item">
+          <div class="distance-header">
+            <span class="control-label">拾取距离限制</span>
+            <span class="distance-val">{autoPickup.pickupDistance.toFixed(1)} 码 (Yards)</span>
+          </div>
+          <input
+            type="range"
+            min="1.0"
+            max="15.0"
+            step="0.5"
+            class="slider"
+            value={autoPickup.pickupDistance}
+            oninput={(e) => handleDistanceChange(parseFloat(e.currentTarget.value) || 5.0)}
+          />
+          <span class="sub-hint">建议 3.0 ~ 8.0 码（1码约为人物一步距离）</span>
+        </div>
+      </div>
+
+      <!-- 规则编辑区域 -->
+      <div class="rules-editor-wrapper">
+        <div class="rules-editor-header">
+          <div class="rules-title-group">
+            <span class="rules-title">拾取规则过滤表 (TOML 语法)</span>
+            <span class="rules-badge">自底向上优先匹配 (Last match wins)</span>
+          </div>
+          <div class="rules-actions">
+            <button
+              type="button"
+              class="btn-reset"
+              onclick={handleResetRules}
+              title="恢复为内置默认规则模板"
+            >
+              重置为默认规则
+            </button>
+            <button
+              type="button"
+              class="btn-save {rulesSaveSuccess ? 'save-success' : ''}"
+              onclick={handleSaveRules}
+              disabled={isSavingRules}
+            >
+              {rulesSaveSuccess ? '✓ 已保存并生效' : isSavingRules ? '保存中…' : '保存并应用规则'}
+            </button>
+          </div>
+        </div>
+
+        <textarea
+          class="rules-textarea"
+          rows="14"
+          spellcheck="false"
+          bind:value={pickupRulesText}
+          placeholder="在此编写自定义自动拾取规则..."
+        ></textarea>
+
+        <!-- 语法参考帮助 (折叠面板) -->
+        <details class="rules-help-details">
+          <summary class="rules-help-summary">
+            <span>📖 点击展开：自动拾取规则语法与属性说明</span>
+          </summary>
+          <div class="rules-help-content">
+            <div class="help-item">
+              <strong class="help-title">拾取行为 (pickup)：</strong>
+              <ul class="help-list">
+                <li>
+                  <code>pickup = 0</code>：<strong>不捡 / 黑名单</strong
+                  >（如特定高价值大号符文防误捡保护，需手动拾取）
+                </li>
+                <li>
+                  <code>pickup = 1</code>：<strong>直接入背包 (Inventory)</strong
+                  >（背包放不下静默跳过）
+                </li>
+                <li>
+                  <code>pickup = 2</code>：<strong>优先放入赫拉迪克方块 (Cube)</strong
+                  >（方块满或未携带方块时自动降级入包）
+                </li>
+                <li>
+                  <code>pickup = 3</code>：<strong>自动补入腰带药水栏 (AutoBelt)</strong
+                  >（腰带存在空槽才捡，满后静默跳过）
+                </li>
+              </ul>
+            </div>
+            <div class="help-item">
+              <strong class="help-title">常用匹配字段：</strong>
+              <ul class="help-list">
+                <li>
+                  <code>match_name = 1, prop = "关键词"</code>：匹配物品名称或包含的字词（如
+                  <code>"完美的"</code>、<code>"符文"</code>、<code>"神秘晶体"</code>）
+                </li>
+                <li><code>match_name = 0, prop = "词条正则"</code>：匹配装备掉落词条属性</li>
+                <li>
+                  <code>quality = "..."</code>：物品品质（可选 <code>normal</code>,
+                  <code>superior</code>, <code>magic</code>, <code>rare</code>, <code>set</code>,
+                  <code>unique</code>）
+                </li>
+                <li><code>id = 603</code>：匹配具体的物品 Class ID（数字）</li>
+                <li><code>socks = 4</code>：匹配开孔数量</li>
+                <li><code>eth = true / false</code>：匹配是否为无形装备</li>
+              </ul>
+            </div>
+            <div class="help-item">
+              <strong class="help-title">匹配机制：</strong>
+              <span class="help-desc"
+                >规则采用从后往前（自底向上）倒序匹配，最后一条命中的规则决定最终行为。</span
+              >
+            </div>
+          </div>
+        </details>
+      </div>
     </div>
   </div>
 
@@ -590,5 +946,262 @@
     50% {
       opacity: 0.6;
     }
+  }
+
+  /* 自动拾取面板样式 */
+  .pickup-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-top: var(--space-2);
+    transition: opacity 0.2s ease;
+  }
+
+  .pickup-container.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .pickup-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+  }
+
+  .control-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .control-label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .distance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .distance-val {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--accent-primary, #60a5fa);
+  }
+
+  .sub-hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .hotkey-wrapper {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+
+  .hotkey-btn {
+    flex: 1;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+  }
+
+  .hotkey-btn:hover {
+    border-color: var(--border-accent);
+  }
+
+  .hotkey-btn.recording {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    color: #ef4444;
+    animation: pulse 1s infinite;
+  }
+
+  .clear-btn {
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    padding: var(--space-2) var(--space-3);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .clear-btn:hover {
+    color: #ef4444;
+    border-color: #ef4444;
+  }
+
+  /* 规则编辑器 */
+  .rules-editor-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+  }
+
+  .rules-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .rules-title-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .rules-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .rules-badge {
+    font-size: var(--text-xs);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    color: var(--text-muted);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  .rules-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .btn-reset {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-reset:hover {
+    color: var(--text-primary);
+    border-color: var(--border-accent);
+  }
+
+  .btn-save {
+    background: var(--accent-primary, #3b82f6);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #ffffff;
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-save:hover:not(:disabled) {
+    opacity: 0.9;
+    filter: brightness(1.1);
+  }
+
+  .btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-save.save-success {
+    background: #10b981;
+  }
+
+  .rules-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-mono, 'Consolas', 'Courier New', monospace);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: var(--space-3);
+    resize: vertical;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .rules-textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary, #3b82f6);
+  }
+
+  /* 帮助折叠 */
+  .rules-help-details {
+    background: var(--bg-primary);
+    border: 1px dashed var(--border-primary);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .rules-help-summary {
+    cursor: pointer;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    user-select: none;
+  }
+
+  .rules-help-summary:hover {
+    color: var(--accent-primary, #60a5fa);
+  }
+
+  .rules-help-content {
+    margin-top: var(--space-3);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-primary);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .help-title {
+    color: var(--text-primary);
+  }
+
+  .help-list {
+    margin: var(--space-1) 0 0 var(--space-4);
+    padding: 0;
+    line-height: 1.6;
+  }
+
+  .help-list code {
+    background: var(--bg-secondary);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    color: var(--accent-primary, #60a5fa);
   }
 </style>

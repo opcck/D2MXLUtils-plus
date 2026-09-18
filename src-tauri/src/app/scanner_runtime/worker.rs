@@ -400,6 +400,9 @@ pub(super) fn start_scanner_internal(
                     if let Some(ab) = app_handle.try_state::<crate::auto_belt::AutoBeltState>() {
                         ab.clear();
                     }
+                    if let Some(ap) = app_handle.try_state::<crate::auto_pickup::AutoPickupState>() {
+                        ap.clear();
+                    }
                     if let Err(e) = app_handle.emit("loot-history-cleared", ()) {
                         log_error(&format!("Failed to emit loot-history-cleared: {}", e));
                     }
@@ -751,6 +754,11 @@ pub(super) fn start_scanner_internal(
                     #[cfg(any(target_os = "windows", target_os = "linux"))]
                     if let Some(auto_belt_state) = app_handle.try_state::<crate::auto_belt::AutoBeltState>() {
                         auto_belt_state.tick(&shared_state.ctx, &shared_state.injector);
+                    }
+
+                    #[cfg(any(target_os = "windows", target_os = "linux"))]
+                    if let Some(auto_pickup_state) = app_handle.try_state::<crate::auto_pickup::AutoPickupState>() {
+                        auto_pickup_state.tick(&shared_state.ctx, &shared_state.injector, &shared_state.recent_events);
                     }
 
                     #[cfg(any(target_os = "windows", target_os = "linux"))]

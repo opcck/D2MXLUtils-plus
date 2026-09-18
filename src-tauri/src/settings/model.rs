@@ -217,6 +217,23 @@ pub struct AppSettings {
     /// Auto potion configuration (slots, thresholds, keys)
     #[serde(default = "default_auto_potion")]
     pub auto_potion: AutoPotionSettings,
+
+    /// Auto pickup configuration
+    #[serde(default = "default_auto_pickup")]
+    pub auto_pickup: AutoPickupSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoPickupSettings {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_auto_pickup_hotkey")]
+    pub hotkey: Option<HotkeyConfig>,
+    #[serde(default = "default_auto_pickup_distance")]
+    pub pickup_distance: f32,
+    #[serde(default = "default_auto_pickup_rules")]
+    pub rules_text: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -403,6 +420,7 @@ impl Default for AppSettings {
             auto_belt: default_auto_belt(),
             remove_shadows: default_remove_shadows(),
             auto_potion: default_auto_potion(),
+            auto_pickup: default_auto_pickup(),
         }
     }
 }
@@ -460,6 +478,31 @@ fn default_auto_potion() -> AutoPotionSettings {
     AutoPotionSettings {
         enabled: true,
         slots: default_auto_potion_slots(),
+    }
+}
+
+fn default_auto_pickup_hotkey() -> Option<HotkeyConfig> {
+    Some(HotkeyConfig {
+        key_code: 0x21, // VK_PRIOR (PgUp)
+        modifiers: 0,
+        display: "PgUp".to_string(),
+    })
+}
+
+fn default_auto_pickup_distance() -> f32 {
+    5.0
+}
+
+fn default_auto_pickup_rules() -> String {
+    crate::auto_pickup::DEFAULT_PICKUP_RULES.to_string()
+}
+
+fn default_auto_pickup() -> AutoPickupSettings {
+    AutoPickupSettings {
+        enabled: false,
+        hotkey: default_auto_pickup_hotkey(),
+        pickup_distance: default_auto_pickup_distance(),
+        rules_text: default_auto_pickup_rules(),
     }
 }
 

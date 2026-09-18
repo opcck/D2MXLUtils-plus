@@ -11,6 +11,7 @@ export {
   type AutoPotionSettings,
   type AutoPotionSlotConfig,
   type AutoPotionTarget,
+  type AutoPickupSettings,
 } from './settings.svelte';
 export { itemsDictionaryStore } from './items-dictionary.svelte';
 export { updaterStore, type UpdaterState } from './updater.svelte';

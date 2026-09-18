@@ -8,8 +8,8 @@ mod model;
 // Preserve the existing settings type paths, including types without direct consumers.
 #[allow(unused_imports)]
 pub use model::{
-    AppSettings, AutoPotionSettings, AutoPotionSlotConfig, AutoPotionTarget, DpsMeterSettings,
-    SoundSlot, SoundSource, WidgetPosition, WindowState,
+    AppSettings, AutoPickupSettings, AutoPotionSettings, AutoPotionSlotConfig, AutoPotionTarget,
+    DpsMeterSettings, SoundSlot, SoundSource, WidgetPosition, WindowState,
 };
 
 use tauri::{AppHandle, Emitter, Manager};
@@ -79,6 +79,21 @@ pub fn save_settings(app: AppHandle, settings: AppSettings) -> Result<(), String
 
     if let Some(state) = app.try_state::<crate::auto_potion::AutoPotionState>() {
         state.update_settings(settings.auto_potion.clone());
+    }
+
+    if let Some(state) = app.try_state::<crate::auto_pickup::AutoPickupState>() {
+        state.enabled.store(
+            settings.auto_pickup.enabled,
+            std::sync::atomic::Ordering::Relaxed,
+        );
+        if let Ok(mut dist) = state.pickup_distance.lock() {
+            *dist = settings.auto_pickup.pickup_distance;
+        }
+        let _ = state.set_rules(&settings.auto_pickup.rules_text);
+    }
+
+    if let Some(hotkey_state) = app.try_state::<crate::auto_pickup::AutoPickupHotkeyState>() {
+        hotkey_state.update(settings.auto_pickup.hotkey.clone());
     }
 
     if let Err(e) = app.emit("settings-updated", &settings) {

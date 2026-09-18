@@ -115,6 +115,14 @@ export interface AppSettings {
   autoBelt: boolean;
   removeShadows: boolean;
   autoPotion: AutoPotionSettings;
+  autoPickup: AutoPickupSettings;
+}
+
+export interface AutoPickupSettings {
+  enabled: boolean;
+  hotkey: HotkeyConfig | null;
+  pickupDistance: number;
+  rulesText: string;
 }
 
 export type AutoPotionTarget = 'hp' | 'mana';
@@ -172,6 +180,12 @@ const DEFAULT_ITEM_SEARCH_HOTKEY: HotkeyConfig = {
   keyCode: 0x46,
   modifiers: 0x0001,
   display: 'Alt+F',
+};
+
+const DEFAULT_AUTO_PICKUP_HOTKEY: HotkeyConfig = {
+  keyCode: 0x21,
+  modifiers: 0,
+  display: 'PgUp',
 };
 
 const DEFAULT_GAME_CREATE_AUTOFILL_HOTKEY: HotkeyConfig = {
@@ -257,6 +271,12 @@ const DEFAULT_SETTINGS: AppSettings = {
       },
     ],
   },
+  autoPickup: {
+    enabled: false,
+    hotkey: DEFAULT_AUTO_PICKUP_HOTKEY,
+    pickupDistance: 5.0,
+    rulesText: '',
+  },
 };
 
 /** Settings store singleton */
@@ -269,6 +289,7 @@ class SettingsStore {
    *  doesn't get clobbered by the main window's stale save (and vice versa). */
   private _dirtyKeys = new Set<keyof AppSettings>();
   private _syncUnlisten: UnlistenFn | null = null;
+  private _autoPickupUnlisten: UnlistenFn | null = null;
 
   /** Current settings (reactive) */
   get settings(): AppSettings {
@@ -376,6 +397,15 @@ class SettingsStore {
       }
       this._settings = merged;
     });
+
+    if (!this._autoPickupUnlisten) {
+      this._autoPickupUnlisten = await listen<boolean>('auto-pickup-toggled', (event) => {
+        this._settings.autoPickup = {
+          ...this._settings.autoPickup,
+          enabled: event.payload,
+        };
+      });
+    }
   }
 
   /** Tear down the cross-window sync listener. */
@@ -383,6 +413,10 @@ class SettingsStore {
     if (this._syncUnlisten) {
       this._syncUnlisten();
       this._syncUnlisten = null;
+    }
+    if (this._autoPickupUnlisten) {
+      this._autoPickupUnlisten();
+      this._autoPickupUnlisten = null;
     }
   }
 
@@ -684,6 +718,31 @@ class SettingsStore {
       await invoke('update_auto_potion_settings', { settings: autoPotion });
     } catch (error) {
       console.error('[Settings] Failed to update auto potion settings:', error);
+    }
+  }
+
+  async setAutoPickupEnabled(enabled: boolean): Promise<void> {
+    this._settings.autoPickup = {
+      ...this._settings.autoPickup,
+      enabled,
+    };
+    this._dirtyKeys.add('autoPickup');
+    this.save();
+    try {
+      await invoke('toggle_auto_pickup', { enabled });
+    } catch (error) {
+      console.error('[Settings] Failed to toggle auto pickup:', error);
+    }
+  }
+
+  async setAutoPickupSettings(autoPickup: AutoPickupSettings): Promise<void> {
+    this.set('autoPickup', autoPickup);
+    try {
+      await invoke('toggle_auto_pickup', { enabled: autoPickup.enabled });
+      await invoke('update_auto_pickup_rules', { rules: autoPickup.rulesText });
+      await invoke('update_auto_pickup_hotkey', { hotkey: autoPickup.hotkey });
+    } catch (error) {
+      console.error('[Settings] Failed to update auto pickup settings:', error);
     }
   }
 }
