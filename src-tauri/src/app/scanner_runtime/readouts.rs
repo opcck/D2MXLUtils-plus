@@ -203,37 +203,30 @@ pub(super) fn sample_inspector(
         .and_then(|s| s.hook.lock().ok().map(|h| h.enabled))
         .unwrap_or(false);
 
-    let current = if monster_info_enabled {
+    // 1. 独立采样怪物
+    let monster = if monster_info_enabled {
         let injector = shared_state.injector.lock().unwrap();
         crate::inspector::sample_hovered_monster(&shared_state.ctx, &injector)
-            .map(crate::inspector::InspectPayload::Monster)
     } else {
         None
     };
 
-    let current = match current {
-        Some(m) => Some(m),
-        None if item_extra_info_enabled => {
-            let ground_item = {
-                let injector = shared_state.injector.lock().unwrap();
-                crate::inspector::sample_hovered_ground_item(&shared_state.ctx, &injector)
-            };
-            if let Some(item) = ground_item {
-                Some(crate::inspector::InspectPayload::Item(item))
-            } else {
-                crate::item_search::read_hovered_item_detail(shared_state)
-                    .ok()
-                    .flatten()
-                    .map(crate::inspector::InspectPayload::Item)
-            }
+    // 2. 独立采样物品（优先读取悬停物品，次选地面选定物品）
+    let item = if item_extra_info_enabled {
+        let hovered_detail = crate::item_search::read_hovered_item_detail(shared_state)
+            .ok()
+            .flatten();
+        if hovered_detail.is_some() {
+            hovered_detail
+        } else {
+            let injector = shared_state.injector.lock().unwrap();
+            crate::inspector::sample_hovered_ground_item(&shared_state.ctx, &injector)
         }
-        None => None,
+    } else {
+        None
     };
 
-    let payload = current.unwrap_or(crate::inspector::InspectPayload::None);
-
-    if last_payload.as_ref() != Some(&payload) {
-        *last_payload = Some(payload.clone());
-        let _ = app_handle.emit("hover-inspector-update", &payload);
-    }
+    // 分别发出独立的解耦事件，供独立的浮窗卡片实时消费
+    let _ = app_handle.emit("monster-inspect-update", &monster);
+    let _ = app_handle.emit("item-inspect-update", &item);
 }

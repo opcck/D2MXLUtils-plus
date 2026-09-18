@@ -5,9 +5,10 @@
   import {
     AlwaysShowItemsIndicator,
     DpsMeter,
-    InspectorHud,
+    ItemHud,
     ItemSearchOverlay,
     LootHistoryPanel,
+    MonsterHud,
     NotificationStack,
     OverlayEditGrid,
   } from '../components';
@@ -59,7 +60,6 @@
 
   let monsterInfoEnabled = $derived(settingsStore.settings.monsterInfo?.enabled ?? false);
   let itemExtraInfoEnabled = $derived(settingsStore.settings.itemExtraInfo?.enabled ?? false);
-  let inspectorVisible = $derived((monsterInfoEnabled || itemExtraInfoEnabled) && inGame);
 
   const EXIT_ANIMATION_DURATION = 0;
 
@@ -205,8 +205,11 @@
     {showOnlyMatchedStats}
   />
   <AlwaysShowItemsIndicator />
-  {#if inspectorVisible}
-    <InspectorHud />
+  {#if monsterInfoEnabled && inGame}
+    <MonsterHud />
+  {/if}
+  {#if itemExtraInfoEnabled && inGame}
+    <ItemHud />
   {/if}
   <ItemSearchOverlay
     onActiveChange={(active) => {

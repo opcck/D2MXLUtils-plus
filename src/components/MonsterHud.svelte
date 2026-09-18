@@ -19,54 +19,34 @@
     pr: number;
   }
 
-  interface ItemInspectData {
-    name: string;
-    class_id: number;
-    unit_id: number;
-    quality: string;
-    sockets: number;
-    is_ethereal: boolean;
-  }
-
-  type InspectPayload =
-    | { kind: 'Monster'; data: MonsterInspectData }
-    | { kind: 'Item'; data: ItemInspectData }
-    | { kind: 'None' };
-
-  let pos = $derived(widgetPosition('inspector'));
-
-  let currentPayload = $state<InspectPayload>({ kind: 'None' });
-  let fadeTimeout: number | null = null;
-
+  let pos = $derived(widgetPosition('monster-hud'));
   let monsterInfo = $derived(settingsStore.settings.monsterInfo);
-  let itemExtraInfo = $derived(settingsStore.settings.itemExtraInfo);
 
-  let isActive = $derived(currentPayload.kind !== 'None');
+  let monster = $state<MonsterInspectData | null>(null);
+  let fadeTimer: number | null = null;
+  let isActive = $derived(monster !== null);
 
   onMount(() => {
     let unlisten: (() => void) | null = null;
 
-    listen<InspectPayload>('hover-inspector-update', (event) => {
-      const payload = event.payload;
-
-      if (payload.kind === 'Monster') {
-        if (!monsterInfo.enabled) {
-          clearFade();
-          currentPayload = { kind: 'None' };
-          return;
+    listen<MonsterInspectData | null>('monster-inspect-update', (event) => {
+      if (!monsterInfo.enabled) {
+        monster = null;
+        return;
+      }
+      if (event.payload) {
+        if (fadeTimer !== null) {
+          clearTimeout(fadeTimer);
+          fadeTimer = null;
         }
-        clearFade();
-        currentPayload = payload;
-      } else if (payload.kind === 'Item') {
-        if (!itemExtraInfo.enabled) {
-          clearFade();
-          currentPayload = { kind: 'None' };
-          return;
-        }
-        clearFade();
-        currentPayload = payload;
+        monster = event.payload;
       } else {
-        triggerFade();
+        if (fadeTimer === null && monster !== null) {
+          fadeTimer = window.setTimeout(() => {
+            monster = null;
+            fadeTimer = null;
+          }, 600);
+        }
       }
     }).then((fn) => {
       unlisten = fn;
@@ -74,37 +54,23 @@
 
     return () => {
       if (unlisten) unlisten();
-      clearFade();
+      if (fadeTimer !== null) clearTimeout(fadeTimer);
     };
   });
-
-  function clearFade() {
-    if (fadeTimeout !== null) {
-      clearTimeout(fadeTimeout);
-      fadeTimeout = null;
-    }
-  }
-
-  function triggerFade() {
-    clearFade();
-    fadeTimeout = window.setTimeout(() => {
-      currentPayload = { kind: 'None' };
-      fadeTimeout = null;
-    }, 500);
-  }
 </script>
 
-<div class="inspector-widget" class:is-active={isActive} style:left="{pos.x}%" style:top="{pos.y}%">
-  {#if currentPayload.kind === 'Monster'}
-    {@const monster = currentPayload.data}
-    <!-- 怪物信息激活态 -->
+<div
+  class="monster-hud-widget"
+  class:is-active={isActive}
+  style:left="{pos.x}%"
+  style:top="{pos.y}%"
+>
+  {#if monster}
     <div class="card-content monster-active">
       <div class="card-header">
         <div class="title-group">
-          <span class="entity-name monster-name">{monster.name}</span>
-          {#if monsterInfo.showClassId}
-            <span class="id-tag">#{monster.class_id}</span>
-          {/if}
+          <span class="monster-name" title={monster.name}>{monster.name}</span>
+          <span class="id-badge">ID: {monster.class_id}</span>
         </div>
         <span class="hp-val">{monster.hp_percent}%</span>
       </div>
@@ -140,36 +106,13 @@
         </div>
       </div>
     </div>
-  {:else if currentPayload.kind === 'Item'}
-    {@const item = currentPayload.data}
-    <!-- 物品信息激活态 -->
-    <div class="card-content item-active quality-{item.quality.toLowerCase()}">
-      <div class="card-header">
-        <span class="entity-name item-name">{item.name}</span>
-        <span class="quality-badge">{item.quality}</span>
-      </div>
-
-      <div class="item-meta">
-        <span class="meta-tag">UID: {item.unit_id}</span>
-        <span class="meta-tag">CID: {item.class_id}</span>
-        {#if itemExtraInfo.showSocketsAndEth}
-          {#if item.sockets > 0}
-            <span class="meta-tag socket-tag">{item.sockets}孔</span>
-          {/if}
-          {#if item.is_ethereal}
-            <span class="meta-tag eth-tag">无形</span>
-          {/if}
-        {/if}
-      </div>
-    </div>
   {:else}
-    <!-- 待机常驻态 (类似 DpsMeter 怠速状态) -->
     <div class="card-content standby-state">
       <div class="card-header standby-header">
-        <span class="standby-title">目标侦测</span>
+        <span class="standby-title">怪物信息</span>
         <span class="standby-badge">待机中</span>
       </div>
-      <div class="standby-hint">悬停怪物或物品查看</div>
+      <div class="standby-hint">悬停怪物查看抗性与ID</div>
       <div class="res-grid standby-grid">
         <div class="res-item"><span class="tag">物</span><span class="val">--</span></div>
         <div class="res-item"><span class="tag">魔</span><span class="val">--</span></div>
@@ -183,9 +126,9 @@
 </div>
 
 <style>
-  .inspector-widget {
+  .monster-hud-widget {
     position: absolute;
-    min-width: 210px;
+    min-width: 220px;
     max-width: 260px;
     background: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(4px);
@@ -199,7 +142,7 @@
     color: #e2e8f0;
     opacity: 0.55;
     user-select: none;
-    pointer-events: none; /* 拖拽由 OverlayEditGrid 中的 ghost 接管 */
+    pointer-events: none;
     transition:
       opacity 200ms ease,
       border-color 200ms ease,
@@ -208,7 +151,7 @@
     z-index: 100;
   }
 
-  .inspector-widget.is-active {
+  .monster-hud-widget.is-active {
     opacity: 0.95;
     background: rgba(15, 23, 42, 0.88);
     border-color: rgba(255, 255, 255, 0.25);
@@ -231,11 +174,11 @@
   .title-group {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     min-width: 0;
   }
 
-  .entity-name {
+  .monster-name {
     font-size: 12px;
     font-weight: 700;
     white-space: nowrap;
@@ -244,12 +187,14 @@
     color: #f8fafc;
   }
 
-  .id-tag {
+  .id-badge {
     font-size: 10px;
-    color: #94a3b8;
-    background: rgba(255, 255, 255, 0.08);
+    color: #facc15;
+    background: rgba(250, 204, 21, 0.15);
+    border: 1px solid rgba(250, 204, 21, 0.3);
     padding: 0 4px;
     border-radius: 2px;
+    font-weight: 600;
   }
 
   .hp-val {
@@ -273,7 +218,6 @@
     transition: width 0.15s ease;
   }
 
-  /* 六系抗性网格 */
   .res-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -335,81 +279,13 @@
     color: #fbbf24;
   }
 
-  /* 物品部分 */
-  .item-meta {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-
-  .meta-tag {
-    font-size: 10px;
-    background: rgba(255, 255, 255, 0.08);
-    padding: 0 4px;
-    border-radius: 2px;
-  }
-
-  .quality-badge {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 0 4px;
-    border-radius: 2px;
-  }
-
-  .quality-unique .item-name {
-    color: #c8963e;
-  }
-  .quality-unique .quality-badge {
-    background: rgba(200, 150, 62, 0.25);
-    color: #c8963e;
-  }
-
-  .quality-set .item-name {
-    color: #22c55e;
-  }
-  .quality-set .quality-badge {
-    background: rgba(34, 197, 94, 0.25);
-    color: #22c55e;
-  }
-
-  .quality-rare .item-name {
-    color: #facc15;
-  }
-  .quality-rare .quality-badge {
-    background: rgba(250, 204, 21, 0.25);
-    color: #facc15;
-  }
-
-  .quality-magic .item-name {
-    color: #60a5fa;
-  }
-  .quality-magic .quality-badge {
-    background: rgba(96, 165, 250, 0.25);
-    color: #60a5fa;
-  }
-
-  .socket-tag {
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.15);
-  }
-
-  .eth-tag {
-    color: #a78bfa;
-    background: rgba(167, 139, 250, 0.15);
-  }
-
-  /* 待机状态 */
   .standby-header {
     opacity: 0.7;
   }
-
   .standby-title {
     font-weight: 600;
     color: #94a3b8;
   }
-
   .standby-badge {
     font-size: 9px;
     padding: 0 4px;
@@ -417,13 +293,11 @@
     border-radius: 2px;
     color: #64748b;
   }
-
   .standby-hint {
     font-size: 10px;
     color: #64748b;
     margin: 2px 0;
   }
-
   .standby-grid .res-item {
     opacity: 0.4;
     border-color: rgba(255, 255, 255, 0.05);

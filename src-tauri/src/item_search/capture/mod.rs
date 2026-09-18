@@ -1017,31 +1017,7 @@ pub(crate) fn read_hovered_item_detail(
                 .read_memory::<u32>(item_data + offset)
                 .ok()
         };
-        let read_item_u8 = |offset: usize| {
-            shared
-                .ctx
-                .process
-                .read_memory::<u8>(item_data + offset)
-                .ok()
-        };
-        let Some(owner_inventory) = read_item_u32(crate::offsets::item_data::OWNER_INVENTORY)
-        else {
-            continue;
-        };
-        let Some(game_location) = read_item_u8(crate::offsets::item_data::GAME_LOCATION) else {
-            continue;
-        };
-        let Some(body_location) = read_item_u8(crate::offsets::item_data::BODY_LOCATION) else {
-            continue;
-        };
-        if !valid_hovered_item_location(
-            owner_inventory,
-            player_inventory,
-            game_location,
-            body_location,
-        ) {
-            continue;
-        }
+        // 移除严格的背包位置限制，允许地面、身上装备、储物箱、方块等所有合法物品单位读取详细信息
 
         let unit_id = read_u32(crate::offsets::unit::UNIT_ID).unwrap_or(0);
         let flags = read_item_u32(crate::offsets::item_data::FLAGS).unwrap_or(0);
