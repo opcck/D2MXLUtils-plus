@@ -5,6 +5,7 @@
   import {
     AlwaysShowItemsIndicator,
     DpsMeter,
+    InspectorHud,
     ItemSearchOverlay,
     LootHistoryPanel,
     NotificationStack,
@@ -200,6 +201,7 @@
     {showOnlyMatchedStats}
   />
   <AlwaysShowItemsIndicator />
+  <InspectorHud />
   <ItemSearchOverlay
     onActiveChange={(active) => {
       itemSearchActive = active;

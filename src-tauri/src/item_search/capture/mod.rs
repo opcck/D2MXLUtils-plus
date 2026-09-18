@@ -953,5 +953,147 @@ pub(super) fn read_hovered_item_name(
     Ok(None)
 }
 
+pub(crate) fn read_hovered_item_detail(
+    shared: &crate::scanner_state::SharedScannerState,
+) -> Result<Option<crate::inspector::ItemInspectData>, String> {
+    let snapshot = match shared.hovered_item_hook.snapshot()? {
+        Some(s) => s,
+        None => return Ok(None),
+    };
+
+    let now_ms = crate::tick_clock::now_ms();
+    if !is_fresh(now_ms, snapshot.last_seen_ms, HOVERED_ITEM_FRESH_MS) {
+        return Ok(None);
+    }
+
+    let candidates = hovered_item_candidates(snapshot);
+    if candidates.is_empty() {
+        return Ok(None);
+    }
+
+    let Some(player_unit) = shared
+        .ctx
+        .process
+        .read_memory::<u32>(shared.ctx.d2_client + crate::offsets::d2client::PLAYER_UNIT)
+        .ok()
+        .filter(|p| *p != 0)
+    else {
+        return Ok(None);
+    };
+    let Some(player_inventory) = shared
+        .ctx
+        .process
+        .read_memory::<u32>(player_unit as usize + crate::offsets::unit::INVENTORY)
+        .ok()
+        .filter(|p| *p != 0)
+    else {
+        return Ok(None);
+    };
+
+    for (_label, candidate) in candidates {
+        let p_unit = candidate as usize;
+        let read_u32 = |offset: usize| shared.ctx.process.read_memory::<u32>(p_unit + offset).ok();
+        let Some(unit_type) = read_u32(crate::offsets::unit::UNIT_TYPE) else {
+            continue;
+        };
+        let Some(class_id) = read_u32(crate::offsets::unit::CLASS) else {
+            continue;
+        };
+        let Some(mode) = read_u32(crate::offsets::unit::MODE) else {
+            continue;
+        };
+        let Some(p_unit_data) = read_u32(crate::offsets::unit::UNIT_DATA) else {
+            continue;
+        };
+        if !valid_hovered_item_unit(unit_type, class_id, mode, p_unit_data) {
+            continue;
+        }
+
+        let item_data = p_unit_data as usize;
+        let read_item_u32 = |offset: usize| {
+            shared
+                .ctx
+                .process
+                .read_memory::<u32>(item_data + offset)
+                .ok()
+        };
+        let read_item_u8 = |offset: usize| {
+            shared
+                .ctx
+                .process
+                .read_memory::<u8>(item_data + offset)
+                .ok()
+        };
+        let Some(owner_inventory) = read_item_u32(crate::offsets::item_data::OWNER_INVENTORY)
+        else {
+            continue;
+        };
+        let Some(game_location) = read_item_u8(crate::offsets::item_data::GAME_LOCATION) else {
+            continue;
+        };
+        let Some(body_location) = read_item_u8(crate::offsets::item_data::BODY_LOCATION) else {
+            continue;
+        };
+        if !valid_hovered_item_location(
+            owner_inventory,
+            player_inventory,
+            game_location,
+            body_location,
+        ) {
+            continue;
+        }
+
+        let unit_id = read_u32(crate::offsets::unit::UNIT_ID).unwrap_or(0);
+        let flags = read_item_u32(crate::offsets::item_data::FLAGS).unwrap_or(0);
+        let is_ethereal = (flags & 0x00400000) != 0;
+        let quality_raw = read_item_u32(crate::offsets::item_data::QUALITY).unwrap_or(2);
+        let quality = match quality_raw {
+            1 => "Inferior",
+            2 => "Normal",
+            3 => "Superior",
+            4 => "Magic",
+            5 => "Set",
+            6 => "Rare",
+            7 => "Unique",
+            8 => "Crafted",
+            9 => "Tempered",
+            _ => "Normal",
+        }
+        .to_string();
+
+        let sockets = {
+            let reader = crate::unit_stats_reader::UnitStatsReader::new(
+                &shared.ctx.process,
+                shared.ctx.d2_common,
+                candidate,
+            );
+            match reader.read_stat(194, 0) {
+                Ok(crate::unit_stats_reader::StatReadResult::Found(val)) => val.max(0) as u32,
+                _ => 0,
+            }
+        };
+
+        let injector = shared
+            .injector
+            .lock()
+            .map_err(|e| format!("D2 injector mutex poisoned: {}", e))?;
+        let raw = injector
+            .get_item_name(&shared.ctx.process, candidate)
+            .unwrap_or_default();
+        let name = display_name_from_raw_item_name(&raw).unwrap_or(raw);
+
+        return Ok(Some(crate::inspector::ItemInspectData {
+            name,
+            class_id,
+            unit_id,
+            quality,
+            sockets,
+            is_ethereal,
+        }));
+    }
+
+    Ok(None)
+}
+
 #[cfg(test)]
 mod tests;

@@ -13,6 +13,7 @@ mod dps;
 mod game_create;
 mod hotkeys;
 mod injection;
+pub mod inspector;
 mod item_extra_info;
 mod item_search;
 mod logger;

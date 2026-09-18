@@ -143,23 +143,6 @@ fn toggle_item_extra_info_internal(app_handle: &AppHandle) {
             hook.enabled = new_val;
             log_info(&format!("ItemExtraInfo toggled via hotkey: {}", new_val));
 
-            if let Some(app_state) = app_handle.try_state::<crate::AppState>() {
-                #[cfg(any(target_os = "windows", target_os = "linux"))]
-                if let Ok(guard) = app_state.scanner_shared_state.read() {
-                    if let Some(shared) = guard.as_ref() {
-                        if hook.is_injected() {
-                            let _ = hook.set_enabled(&shared.ctx.process, new_val);
-                        } else if new_val {
-                            let _ = hook.inject(
-                                &shared.ctx.process,
-                                shared.ctx.d2_sigma,
-                                shared.ctx.d2_common,
-                            );
-                        }
-                    }
-                }
-            }
-
             let _ = app_handle.emit("item-extra-info-toggled", new_val);
         }
     }
@@ -169,25 +152,11 @@ fn toggle_item_extra_info_internal(app_handle: &AppHandle) {
 #[tauri::command]
 pub fn toggle_item_extra_info(
     state: tauri::State<'_, ItemExtraInfoState>,
-    app_state: tauri::State<'_, crate::AppState>,
+    _app_state: tauri::State<'_, crate::AppState>,
     enabled: bool,
 ) -> Result<(), String> {
     let mut hook = state.hook.lock().map_err(|e| e.to_string())?;
     hook.enabled = enabled;
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    if let Ok(guard) = app_state.scanner_shared_state.read() {
-        if let Some(shared) = guard.as_ref() {
-            if hook.is_injected() {
-                hook.set_enabled(&shared.ctx.process, enabled)?;
-            } else if enabled {
-                hook.inject(
-                    &shared.ctx.process,
-                    shared.ctx.d2_sigma,
-                    shared.ctx.d2_common,
-                )?;
-            }
-        }
-    }
     Ok(())
 }
 
@@ -195,19 +164,11 @@ pub fn toggle_item_extra_info(
 #[tauri::command]
 pub fn set_item_extra_info_show_sockets_and_eth(
     state: tauri::State<'_, ItemExtraInfoState>,
-    app_state: tauri::State<'_, crate::AppState>,
+    _app_state: tauri::State<'_, crate::AppState>,
     show: bool,
 ) -> Result<(), String> {
     let mut hook = state.hook.lock().map_err(|e| e.to_string())?;
     hook.show_sockets_and_eth = show;
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    if let Ok(guard) = app_state.scanner_shared_state.read() {
-        if let Some(shared) = guard.as_ref() {
-            if hook.is_injected() {
-                hook.set_show_sockets_and_eth(&shared.ctx.process, show)?;
-            }
-        }
-    }
     Ok(())
 }
 

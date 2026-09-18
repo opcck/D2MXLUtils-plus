@@ -143,23 +143,6 @@ fn toggle_monster_info_internal(app_handle: &AppHandle) {
             hook.enabled = new_val;
             log_info(&format!("MonsterInfo toggled via hotkey: {}", new_val));
 
-            if let Some(app_state) = app_handle.try_state::<crate::AppState>() {
-                #[cfg(any(target_os = "windows", target_os = "linux"))]
-                if let Ok(guard) = app_state.scanner_shared_state.read() {
-                    if let Some(shared) = guard.as_ref() {
-                        if hook.is_injected() {
-                            let _ = hook.set_enabled(&shared.ctx.process, new_val);
-                        } else if new_val {
-                            let _ = hook.inject(
-                                &shared.ctx.process,
-                                shared.ctx.d2_sigma,
-                                shared.ctx.d2_common,
-                            );
-                        }
-                    }
-                }
-            }
-
             let _ = app_handle.emit("monster-info-toggled", new_val);
         }
     }
@@ -169,25 +152,11 @@ fn toggle_monster_info_internal(app_handle: &AppHandle) {
 #[tauri::command]
 pub fn toggle_monster_info(
     state: tauri::State<'_, MonsterInfoState>,
-    app_state: tauri::State<'_, crate::AppState>,
+    _app_state: tauri::State<'_, crate::AppState>,
     enabled: bool,
 ) -> Result<(), String> {
     let mut hook = state.hook.lock().map_err(|e| e.to_string())?;
     hook.enabled = enabled;
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    if let Ok(guard) = app_state.scanner_shared_state.read() {
-        if let Some(shared) = guard.as_ref() {
-            if hook.is_injected() {
-                hook.set_enabled(&shared.ctx.process, enabled)?;
-            } else if enabled {
-                hook.inject(
-                    &shared.ctx.process,
-                    shared.ctx.d2_sigma,
-                    shared.ctx.d2_common,
-                )?;
-            }
-        }
-    }
     Ok(())
 }
 
@@ -195,19 +164,11 @@ pub fn toggle_monster_info(
 #[tauri::command]
 pub fn set_monster_info_show_id(
     state: tauri::State<'_, MonsterInfoState>,
-    app_state: tauri::State<'_, crate::AppState>,
+    _app_state: tauri::State<'_, crate::AppState>,
     show_id: bool,
 ) -> Result<(), String> {
     let mut hook = state.hook.lock().map_err(|e| e.to_string())?;
     hook.show_id = show_id;
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    if let Ok(guard) = app_state.scanner_shared_state.read() {
-        if let Some(shared) = guard.as_ref() {
-            if hook.is_injected() {
-                hook.set_show_id(&shared.ctx.process, show_id)?;
-            }
-        }
-    }
     Ok(())
 }
 

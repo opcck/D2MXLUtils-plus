@@ -185,3 +185,47 @@ pub(super) fn sample_dps(
         }
     }
 }
+
+pub(super) fn sample_inspector(
+    shared_state: &SharedScannerState,
+    app_handle: &AppHandle,
+    last_payload: &mut Option<crate::inspector::InspectPayload>,
+) {
+    use tauri::Manager;
+
+    let monster_info_enabled = app_handle
+        .try_state::<crate::monster_info::MonsterInfoState>()
+        .and_then(|s| s.hook.lock().ok().map(|h| h.enabled))
+        .unwrap_or(false);
+
+    let item_extra_info_enabled = app_handle
+        .try_state::<crate::item_extra_info::ItemExtraInfoState>()
+        .and_then(|s| s.hook.lock().ok().map(|h| h.enabled))
+        .unwrap_or(false);
+
+    let current = if monster_info_enabled {
+        let injector = shared_state.injector.lock().unwrap();
+        crate::inspector::sample_hovered_monster(&shared_state.ctx, &injector)
+            .map(crate::inspector::InspectPayload::Monster)
+    } else {
+        None
+    };
+
+    let current = match current {
+        Some(m) => Some(m),
+        None if item_extra_info_enabled => {
+            crate::item_search::read_hovered_item_detail(shared_state)
+                .ok()
+                .flatten()
+                .map(crate::inspector::InspectPayload::Item)
+        }
+        None => None,
+    };
+
+    let payload = current.unwrap_or(crate::inspector::InspectPayload::None);
+
+    if last_payload.as_ref() != Some(&payload) {
+        *last_payload = Some(payload.clone());
+        let _ = app_handle.emit("hover-inspector-update", &payload);
+    }
+}

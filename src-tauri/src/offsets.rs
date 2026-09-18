@@ -20,6 +20,9 @@ pub mod d2client {
     /// `docs/map-marker-reverse-engineering.md`.
     pub const AUTOMAP_LAYER: usize = 0x11C1C4;
 
+    /// Currently selected/hovered unit under cursor (dword → UnitAny*)
+    pub const SELECTED_UNIT: usize = 0x11C1D8;
+
     /// Current game difficulty as `u32`: `0=Normal, 1=Nightmare, 2=Hell`.
     /// Used by the DPS-meter trampoline to index `MonStats.wMaxHP[diff]`.
     pub const DIFFICULTY: usize = 0x11C390;
