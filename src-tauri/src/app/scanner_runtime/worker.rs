@@ -244,6 +244,7 @@ pub(super) fn start_scanner_internal(
                 #[cfg(any(target_os = "windows", target_os = "linux"))]
                 if let Some(monster_info_state) = app_handle.try_state::<crate::monster_info::MonsterInfoState>() {
                     if let Ok(mut info) = monster_info_state.hook.lock() {
+                        info.reset_injection_state();
                         if info.enabled {
                             if let Err(e) = info.inject(&shared_state.ctx.process, shared_state.ctx.d2_sigma, shared_state.ctx.d2_common) {
                                 log_error(&format!("Failed to inject monster info hook: {}", e));
@@ -255,6 +256,7 @@ pub(super) fn start_scanner_internal(
                 #[cfg(any(target_os = "windows", target_os = "linux"))]
                 if let Some(item_extra_info_state) = app_handle.try_state::<crate::item_extra_info::ItemExtraInfoState>() {
                     if let Ok(mut extra_info) = item_extra_info_state.hook.lock() {
+                        extra_info.reset_injection_state();
                         if extra_info.enabled {
                             if let Err(e) = extra_info.inject(&shared_state.ctx.process, shared_state.ctx.d2_sigma, shared_state.ctx.d2_common) {
                                 log_error(&format!("Failed to inject item extra info hook: {}", e));
@@ -835,6 +837,20 @@ pub(super) fn start_scanner_internal(
             if let Some(shadow_state) = app_handle.try_state::<crate::shadow_tweak::ShadowTweakState>() {
                 if let Ok(mut tweak) = shadow_state.tweak.lock() {
                     let _ = tweak.restore(&shared_state.ctx.process, shared_state.ctx.d2_client);
+                }
+            }
+
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            if let Some(monster_info_state) = app_handle.try_state::<crate::monster_info::MonsterInfoState>() {
+                if let Ok(mut info) = monster_info_state.hook.lock() {
+                    info.reset_injection_state();
+                }
+            }
+
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            if let Some(item_extra_info_state) = app_handle.try_state::<crate::item_extra_info::ItemExtraInfoState>() {
+                if let Ok(mut extra_info) = item_extra_info_state.hook.lock() {
+                    extra_info.reset_injection_state();
                 }
             }
 

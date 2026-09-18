@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.28.4 — 2026-09-18
+
+### Bug Fixes
+
+- 修复游戏进程附加/重新进入游戏时 Hook 注入状态未重置导致功能失效的问题。
+- 修复怪物生命条 Hook 宽字符格式化超出栈局部缓冲区容量导致的 ACCESS_VIOLATION (c0000005) 崩溃 Bug（严格限制名称截断与格式化长度，消除栈溢出）。
+- 修复物品扩展信息 Hook 中 GetItemName 栈缓冲区超限覆盖与 D2ItemData 无形标志（ethereal）偏移读取错误。
+
+### UI & Refactoring
+
+- 重构 AssistTab 辅助页面排版：将怪物信息与物品信息两行垂直大卡片精简重构为左右双列紧凑并排卡片（compact card），移除冗余的长篇说明文字，提升界面空间利用率。
+
 ## v1.28.3 — 2026-09-18
 
 ### Features

@@ -49,6 +49,12 @@ impl ItemExtraInfoHook {
         }
     }
 
+    pub fn reset_injection_state(&mut self) {
+        self.is_injected = false;
+        self.trampoline_addr = 0;
+        self.get_item_name_addr = 0;
+    }
+
     pub fn is_injected(&self) -> bool {
         self.is_injected
     }
@@ -287,9 +293,9 @@ impl ItemExtraInfoHook {
         let no_item_data_idx = code.len();
         code.extend_from_slice(&[0x74, 0]); // short jz
 
-        // flags = [eax + 0x00]
+        // flags = [eax + 0x18] (dwFlags in D2ItemData)
         // test eax, 0x00400000 (ITEMFLAG_ETHEREAL)
-        code.extend_from_slice(&[0x8B, 0x00, 0xA9, 0x00, 0x00, 0x40, 0x00]);
+        code.extend_from_slice(&[0x8B, 0x40, 0x18, 0xA9, 0x00, 0x00, 0x40, 0x00]);
         let not_eth_idx = code.len();
         code.extend_from_slice(&[0x74, 0]); // short jz
 
@@ -308,22 +314,51 @@ impl ItemExtraInfoHook {
         let finish_str_offset = code.len();
         code[skip_socks_eth_idx + 1] = (finish_str_offset - (skip_socks_eth_idx + 2)) as u8;
 
-        // Null terminator: mov word ptr [edi], 0x0000
+        // Null terminator for temp_buf: mov word ptr [edi], 0x0000
         code.extend_from_slice(&[0x66, 0xC7, 0x07, 0x00, 0x00]);
 
-        // 4. Copy g_temp_buf back into pBuffer: [ebp + 0x0C]
+        // 4. Copy g_temp_buf back into pBuffer: [ebp + 0x0C] with strict length bounding
         code.push(0xBE);
         code.extend_from_slice(&g_temp_buf.to_le_bytes());
         code.extend_from_slice(&[0x8B, 0x7D, 0x0C]); // mov edi, [ebp + 0x0C]
 
+        // edx = [ebp + 0x10] (max_len)
+        code.extend_from_slice(&[0x8B, 0x55, 0x10]);
+        // dec edx (leave room for null)
+        code.extend_from_slice(&[0x4A]);
+        // cmp edx, 60; jle .use_edx; mov edx, 60; .use_edx:
+        code.extend_from_slice(&[0x83, 0xFA, 0x3C, 0x7E, 0x05, 0xBA, 0x3C, 0x00, 0x00, 0x00]);
+
+        // xor ecx, ecx
+        code.extend_from_slice(&[0x31, 0xC9]);
         // .copy_back_loop:
-        let copy_back_offset = code.len();
-        code.extend_from_slice(&[
-            0x66, 0x8B, 0x0E, 0x66, 0x89, 0x0F, 0x83, 0xC6, 0x02, 0x83, 0xC7, 0x02, 0x66, 0x85,
-            0xC9,
-        ]);
-        let cb_loop_back = (copy_back_offset as isize - (code.len() as isize + 2)) as i8;
-        code.extend_from_slice(&[0x75, cb_loop_back as u8]);
+        let cb_loop_offset = code.len();
+        // cmp ecx, edx; jge .copy_back_done
+        code.extend_from_slice(&[0x39, 0xD1]);
+        let cb_done_jmp1 = code.len();
+        code.extend_from_slice(&[0x7D, 0]);
+
+        // mov ax, [esi + ecx*2]
+        code.extend_from_slice(&[0x66, 0x8B, 0x04, 0x4E]);
+        // test ax, ax; jz .copy_back_done
+        code.extend_from_slice(&[0x66, 0x85, 0xC0]);
+        let cb_done_jmp2 = code.len();
+        code.extend_from_slice(&[0x74, 0]);
+
+        // mov [edi + ecx*2], ax
+        code.extend_from_slice(&[0x66, 0x89, 0x04, 0x4F]);
+        // inc ecx; jmp .copy_back_loop
+        code.extend_from_slice(&[0x41, 0xEB]);
+        let cb_loop_back = (cb_loop_offset as isize - (code.len() as isize + 1)) as i8;
+        code.push(cb_loop_back as u8);
+
+        // .copy_back_done:
+        let cb_done_offset = code.len();
+        code[cb_done_jmp1 + 1] = (cb_done_offset - (cb_done_jmp1 + 2)) as u8;
+        code[cb_done_jmp2 + 1] = (cb_done_offset - (cb_done_jmp2 + 2)) as u8;
+
+        // write null terminator: mov word ptr [edi + ecx*2], 0
+        code.extend_from_slice(&[0x66, 0xC7, 0x04, 0x4F, 0x00, 0x00]);
 
         // mov eax, 1 (TRUE)
         code.extend_from_slice(&[0xB8, 0x01, 0x00, 0x00, 0x00]);

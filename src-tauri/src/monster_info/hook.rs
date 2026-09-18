@@ -53,6 +53,14 @@ impl MonsterInfoHook {
         }
     }
 
+    pub fn reset_injection_state(&mut self) {
+        self.is_injected = false;
+        self.trampoline_addr = 0;
+        self.monster_lifebar_addr = 0;
+        self.boss_lifebar_addr = 0;
+        self.check_display_addr = 0;
+    }
+
     pub fn is_injected(&self) -> bool {
         self.is_injected
     }
@@ -293,6 +301,8 @@ impl MonsterInfoHook {
         // mov esi, ecx  (save pUnit in ESI)
         code.extend_from_slice(&[0x89, 0xCE]);
 
+        // ensure ecx = esi before calling Units_GetName (fastcall)
+        code.extend_from_slice(&[0x89, 0xF1]);
         // call dword ptr [g_orig_get_name]
         code.extend_from_slice(&[0xFF, 0x15]);
         code.extend_from_slice(&g_orig_get_name.to_le_bytes());
@@ -303,24 +313,31 @@ impl MonsterInfoHook {
         code.push(0xBF);
         code.extend_from_slice(&g_formatted_buf.to_le_bytes());
 
-        // .copy_orig_name:
-        // mov cx, word ptr [ebx]
-        // test cx, cx
-        // jz .name_done
-        // mov word ptr [edi], cx
-        // add ebx, 2
-        // add edi, 2
-        // jmp .copy_orig_name
+        // Check if pOrigName is NULL
+        code.extend_from_slice(&[0x85, 0xDB]);
+        let null_name_jmp_idx = code.len();
+        code.extend_from_slice(&[0x74, 0]); // short jz .name_done
+
+        // .copy_orig_name (limit to max 12 characters to prevent stack overflow in D2Sigma caller)
+        // xor edx, edx
+        code.extend_from_slice(&[0x31, 0xD2]);
         let copy_loop_offset = code.len();
+        code.extend_from_slice(&[0x83, 0xFA, 0x0C]); // cmp edx, 12
+        let max_name_jmp_idx = code.len();
+        code.extend_from_slice(&[0x7D, 0]); // short jge .name_done
         code.extend_from_slice(&[0x66, 0x8B, 0x0B, 0x66, 0x85, 0xC9]);
         let name_done_jmp_idx = code.len();
-        code.extend_from_slice(&[0x74, 0]); // short jz
-        code.extend_from_slice(&[0x66, 0x89, 0x0F, 0x83, 0xC3, 0x02, 0x83, 0xC7, 0x02, 0xEB]);
+        code.extend_from_slice(&[0x74, 0]); // short jz .name_done
+        code.extend_from_slice(&[
+            0x66, 0x89, 0x0F, 0x83, 0xC3, 0x02, 0x83, 0xC7, 0x02, 0x42, 0xEB,
+        ]);
         let loop_back = (copy_loop_offset as isize - (code.len() as isize + 1)) as i8;
         code.push(loop_back as u8);
 
         // .name_done:
         let name_done_offset = code.len();
+        code[null_name_jmp_idx + 1] = (name_done_offset - (null_name_jmp_idx + 2)) as u8;
+        code[max_name_jmp_idx + 1] = (name_done_offset - (max_name_jmp_idx + 2)) as u8;
         code[name_done_jmp_idx + 1] = (name_done_offset - (name_done_jmp_idx + 2)) as u8;
 
         // Check show_id
@@ -332,8 +349,8 @@ impl MonsterInfoHook {
         let skip_id_jmp_idx = code.len();
         code.extend_from_slice(&[0x74, 0]); // short jz
 
-        // append '(' -> 0x0028
-        code.extend_from_slice(&[0x66, 0xC7, 0x07, 0x28, 0x00, 0x83, 0xC7, 0x02]);
+        // append '[' -> 0x005B
+        code.extend_from_slice(&[0x66, 0xC7, 0x07, 0x5B, 0x00, 0x83, 0xC7, 0x02]);
 
         // eax = [esi + 4] (dwClassId)
         code.extend_from_slice(&[0x8B, 0x46, 0x04]);
@@ -341,20 +358,8 @@ impl MonsterInfoHook {
         let call_append_dec_idx1 = code.len();
         code.extend_from_slice(&[0xE8, 0, 0, 0, 0]);
 
-        // append ", 0x" -> 0x002C, 0x0020, 0x0030, 0x0078
-        code.extend_from_slice(&[
-            0x66, 0xC7, 0x07, 0x2C, 0x00, 0x66, 0xC7, 0x47, 0x02, 0x20, 0x00, 0x66, 0xC7, 0x47,
-            0x04, 0x30, 0x00, 0x66, 0xC7, 0x47, 0x06, 0x78, 0x00, 0x83, 0xC7, 0x08,
-        ]);
-
-        // eax = [esi + 4] (dwClassId)
-        code.extend_from_slice(&[0x8B, 0x46, 0x04]);
-        // call append_hex
-        let call_append_hex_idx1 = code.len();
-        code.extend_from_slice(&[0xE8, 0, 0, 0, 0]);
-
-        // append ')' -> 0x0029
-        code.extend_from_slice(&[0x66, 0xC7, 0x07, 0x29, 0x00, 0x83, 0xC7, 0x02]);
+        // append ']' -> 0x005D
+        code.extend_from_slice(&[0x66, 0xC7, 0x07, 0x5D, 0x00, 0x83, 0xC7, 0x02]);
 
         // .skip_id:
         let skip_id_offset = code.len();
@@ -480,7 +485,6 @@ impl MonsterInfoHook {
         };
 
         fixup_call(&mut code, call_append_dec_idx1, sub_append_dec_offset);
-        fixup_call(&mut code, call_append_hex_idx1, sub_append_hex_offset);
         for call_idx in append_stat_call_site_indices {
             fixup_call(&mut code, call_idx, sub_append_stat_offset);
         }
