@@ -1,5 +1,50 @@
 # Changelog
 
+## v1.28.1 — 2026-09-18
+
+### Features
+
+- Feat(portable): 便携化改造，配置与缓存统一收拢至 exe 同级 config 目录 (562b2f9)
+
+### Miscellaneous
+
+- Chore(release): 发布新版本 v1.28.1 (支持便携化运行与数据隔离) (2427d24)
+
+## v1.28.0 — 2026-09-18
+
+### Bug Fixes
+
+- Fix(assist): use UnitStatsReader for vitals composite max hp/mana and enable tab scrolling (dcfacc5)
+- Fix(auto_belt): complete rewrite of potion auto belt replenish based on hackmap reverse engineering (fd6e5c1)
+- Fix(auto_belt): fix potion replenishment with native 0x63 packet, D2Client SendPacket call, and remove ground pickup (f1ecb13)
+
+### Changes
+
+- Update README.md (8600097)
+- Update README.md (8082158)
+- Update README.md (c2fee45)
+
+### Documentation
+
+- Docs: 添加 D2MXLUtils 汉化与添加功能合并 hackmap 任务总结文档 (e412049)
+- Docs(reference): upload hackmap-rs source for reference and retention (63303bd)
+
+### Features
+
+- Feat(auto-pickup): 新增侵入式自动拾取功能 (Auto Pickup) (0ad288d)
+- Feat(assist): add Assist tab and 3-slot custom auto potion system (53007da)
+- Feat(shadow): add remove unit and scene shadows tweak and UI toggle (2d8ac99)
+- Feat: integrate Hackmap QoL features (monster radar, continuous attack, auto belt) (37d4d4d)
+- Feat: 界面与文档全量中文汉化 (v0.2.0-zh) (1ceb4d0)
+
+### Miscellaneous
+
+- Chore(release): 发布新版本 v1.28.0 (新增侵入式自动拾取系统) (81656f8)
+
+### Styling
+
+- Style: 更新主窗口右下角标识为汉化+辅助魔改：西西 (36cbc57)
+
 ## v1.27.8 — 2026-09-12
 
 ### Bug Fixes
@@ -471,22 +516,11 @@
 
 - Fix(filter): auto-load active profile on startup (0e5b82e)
 - Fix(notifier): label low-wLvl TU uniques (e.g. Razordisk) correctly (d9b6904)
-
-### Features
-
-- Feat(updater): add GitHub Releases auto-updater (b872d31)
-- Feat(filter): highlight matched stat line in drop notifications (5b198b3)
-- Feat(sound): play drop notification sounds with master volume (b821569)
-- Feat(notifications): improve drop rendering and settings preview (de19ced)
-
-## v1.6.0 — 2026-04-21
-
-### Bug Fixes
-
 - Fix(ui): sync header version with package.json at build time (79741a8)
 - Eliminate loot-filter label flicker on fresh drops (bff0c0d)
 - Fix reattach bug (37374c0)
 - Survive project restart without re-launching Diablo II (4f3ed6d)
+- Fix loot filter not syncing to scanner after profile load/save (d8dacab)
 
 ### CI
 
@@ -498,25 +532,17 @@
 - Move drop notifications to top-left and hide overlay window border (c0be59c)
 - Redesign drop notification layout and drop the `name` filter flag (b67fd52)
 - Normalize autocomplete dictionary and version the items cache (12ae0fb)
-
-### Features
-
-- Add hold-hotkey overlay editor to reposition drop notifications (7a645a8)
-- Add uniques and set items to autocomplete dictionary (863a50f)
-- Add items autocomplete to loot-filter rules editor (00c7341)
-
-## v1.5.0 — 2026-04-19
-
-### Bug Fixes
-
-- Fix loot filter not syncing to scanner after profile load/save (d8dacab)
-
-### Changes
-
 - Removed docs (313fcfb)
 
 ### Features
 
+- Feat(updater): add GitHub Releases auto-updater (b872d31)
+- Feat(filter): highlight matched stat line in drop notifications (5b198b3)
+- Feat(sound): play drop notification sounds with master volume (b821569)
+- Feat(notifications): improve drop rendering and settings preview (de19ced)
+- Add hold-hotkey overlay editor to reposition drop notifications (7a645a8)
+- Add uniques and set items to autocomplete dictionary (863a50f)
+- Add items autocomplete to loot-filter rules editor (00c7341)
 - Support multi-quality/tier OR-matching and base_name regex (915f96a)
 - Implement MedianXL tier detection (C2 fix) (bea784d)
 - Add force-show filter mode and reduce scanner overhead (a476716)
