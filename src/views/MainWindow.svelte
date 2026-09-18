@@ -235,7 +235,7 @@
   <!-- Footer -->
   <footer class="footer">
     <span class="footer-text"
-      >Made with ❤️ by synonymouse · Contributions by Pertinate · 翻译：西西</span
+      >Made with ❤️ by synonymouse · Contributions by Pertinate · 汉化+辅助魔改：西西</span
     >
   </footer>
 </main>
