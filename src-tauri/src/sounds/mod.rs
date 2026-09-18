@@ -15,12 +15,8 @@ const SOUNDS_DIR: &str = "sounds";
 const MAX_BYTES: usize = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_EXTS: &[&str] = &["mp3", "wav", "ogg", "m4a", "flac"];
 
-fn sounds_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("failed to resolve app_data_dir: {}", e))?
-        .join(SOUNDS_DIR);
+fn sounds_dir(_app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = crate::app_paths::get_app_dir().join(SOUNDS_DIR);
     if !dir.exists() {
         fs::create_dir_all(&dir).map_err(|e| format!("failed to create {:?}: {}", dir, e))?;
     }

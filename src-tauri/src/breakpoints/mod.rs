@@ -46,12 +46,9 @@ pub(crate) fn get_speedcalc_data(state: tauri::State<AppState>) -> Option<Speedc
 #[tauri::command]
 pub(crate) fn refresh_speedcalc_data(
     state: tauri::State<AppState>,
-    app_handle: AppHandle,
+    _app_handle: AppHandle,
 ) -> Result<(), String> {
-    let app_data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    let app_data_dir = crate::app_paths::get_app_dir();
     let table = fetch_and_cache_speedcalc_data(&app_data_dir)?;
     if let Ok(mut guard) = state.speedcalc_table.write() {
         *guard = Some(table);

@@ -104,20 +104,12 @@ fn fetch_release_asset() -> Result<GithubAsset, String> {
         })
 }
 
-fn db_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("app_data_dir: {}", e))?;
-    Ok(dir.join(DB_FILE))
+fn db_path(_app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(crate::app_paths::get_app_dir().join(DB_FILE))
 }
 
-fn meta_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("app_data_dir: {}", e))?;
-    Ok(dir.join(META_FILE))
+fn meta_path(_app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(crate::app_paths::get_app_dir().join(META_FILE))
 }
 
 fn read_local_meta(app: &AppHandle) -> Option<LocalMeta> {

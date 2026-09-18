@@ -20,10 +20,11 @@ pub(crate) use platform::{
 };
 
 pub(crate) use commands::{
-    __cmd__get_changelog, __cmd__get_game_status, __cmd__get_scanner_status,
-    __cmd__open_app_folder, __cmd__open_devtools, __cmd__open_external_url,
-    __cmd__refresh_game_data_caches, get_changelog, get_game_status, get_scanner_status,
-    open_app_folder, open_devtools, open_external_url, refresh_game_data_caches,
+    __cmd__get_app_config_dir, __cmd__get_changelog, __cmd__get_game_status,
+    __cmd__get_scanner_status, __cmd__open_app_folder, __cmd__open_devtools,
+    __cmd__open_external_url, __cmd__refresh_game_data_caches, get_app_config_dir, get_changelog,
+    get_game_status, get_scanner_status, open_app_folder, open_devtools, open_external_url,
+    refresh_game_data_caches,
 };
 
 pub(crate) use controls::{

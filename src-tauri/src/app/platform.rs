@@ -6,17 +6,11 @@ use crate::logger::error as log_error;
 use windows::Win32::Foundation::{BOOL, HANDLE};
 #[cfg(target_os = "windows")]
 use windows::Win32::Security::{
-    AdjustTokenPrivileges, GetTokenInformation, LookupPrivilegeValueW, TokenElevationType,
-    TokenLinkedToken, LUID_AND_ATTRIBUTES, SE_DEBUG_NAME, SE_PRIVILEGE_ENABLED,
-    TOKEN_ADJUST_PRIVILEGES, TOKEN_ELEVATION_TYPE, TOKEN_LINKED_TOKEN, TOKEN_PRIVILEGES,
-    TOKEN_QUERY,
+    AdjustTokenPrivileges, LookupPrivilegeValueW, LUID_AND_ATTRIBUTES, SE_DEBUG_NAME,
+    SE_PRIVILEGE_ENABLED, TOKEN_ADJUST_PRIVILEGES, TOKEN_PRIVILEGES, TOKEN_QUERY,
 };
 #[cfg(target_os = "windows")]
-use windows::Win32::System::Com::CoTaskMemFree;
-#[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
-#[cfg(target_os = "windows")]
-use windows::Win32::UI::Shell::{FOLDERID_LocalAppData, SHGetKnownFolderPath, KF_FLAG_DEFAULT};
 
 pub(crate) fn prepare_environment() {
     // Force XWayland instead of native Wayland for GTK/webkit2gtk. Native
@@ -113,103 +107,14 @@ pub(crate) fn enable_debug_privilege() {
 ///
 /// When running with administrator privileges (elevated), WebView2 may fail
 /// to access the user's LocalAppData because the elevated process runs under
-/// a different user context. This function detects elevation and sets
-/// WEBVIEW2_USER_DATA_FOLDER to the non-elevated user's LocalAppData path.
+/// Configures the WebView2 user data folder to `<exe_dir>/config/webview` for portable operation.
+/// This also solves elevation issues where WebView2 cannot access default user profile paths.
 #[cfg(target_os = "windows")]
 pub(crate) fn setup_webview2_for_elevation() {
-    use std::mem::size_of;
-
-    unsafe {
-        // Get the current process token
-        let mut token_handle = HANDLE::default();
-        if let Err(e) = OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token_handle) {
-            log_error(&format!(
-                "WebView2 setup: OpenProcessToken failed, skipping elevation check: {}",
-                e
-            ));
-            return;
-        }
-
-        // Check elevation type
-        let mut elevation_type = TOKEN_ELEVATION_TYPE::default();
-        let mut return_length = 0u32;
-
-        let result = GetTokenInformation(
-            token_handle,
-            TokenElevationType,
-            Some(&mut elevation_type as *mut _ as *mut _),
-            size_of::<TOKEN_ELEVATION_TYPE>() as u32,
-            &mut return_length,
-        );
-
-        if let Err(e) = result {
-            log_error(&format!(
-                "WebView2 setup: GetTokenInformation(TokenElevationType) failed: {}",
-                e
-            ));
-            let _ = windows::Win32::Foundation::CloseHandle(token_handle);
-            return;
-        }
-
-        // TokenElevationTypeFull (2) means the process is elevated via UAC
-        // We need to get the linked token (non-elevated user token) to find correct AppData
-        if elevation_type.0 != 2 {
-            // Not elevated via UAC, no need to adjust WebView2 path
-            let _ = windows::Win32::Foundation::CloseHandle(token_handle);
-            return;
-        }
-
-        // Get the linked token (the non-elevated user token)
-        let mut linked_token = TOKEN_LINKED_TOKEN::default();
-        let mut return_length = 0u32;
-
-        let result = GetTokenInformation(
-            token_handle,
-            TokenLinkedToken,
-            Some(&mut linked_token as *mut _ as *mut _),
-            size_of::<TOKEN_LINKED_TOKEN>() as u32,
-            &mut return_length,
-        );
-
-        let _ = windows::Win32::Foundation::CloseHandle(token_handle);
-
-        if let Err(e) = result {
-            log_error(&format!(
-                "WebView2 setup: GetTokenInformation(TokenLinkedToken) failed: {}",
-                e
-            ));
-            return;
-        }
-
-        // Get LocalAppData path using the linked (non-elevated) token
-        let path_ptr = SHGetKnownFolderPath(
-            &FOLDERID_LocalAppData,
-            KF_FLAG_DEFAULT,
-            linked_token.LinkedToken,
-        );
-
-        let _ = windows::Win32::Foundation::CloseHandle(linked_token.LinkedToken);
-
-        match path_ptr {
-            Ok(ptr) => {
-                // Convert PWSTR to Rust String
-                let path_str = ptr.to_string().unwrap_or_default();
-                CoTaskMemFree(Some(ptr.as_ptr() as *const _));
-
-                if !path_str.is_empty() {
-                    // Construct WebView2 data folder path
-                    let webview2_path = format!("{}\\D2MXLUtils\\WebView2", path_str);
-                    std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", &webview2_path);
-                }
-            }
-            Err(e) => {
-                log_error(&format!(
-                    "WebView2 setup: SHGetKnownFolderPath(LocalAppData) failed: {:?}",
-                    e
-                ));
-            }
-        }
-    }
+    let webview2_path = crate::app_paths::get_app_dir().join("webview");
+    let _ = std::fs::create_dir_all(&webview2_path);
+    std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", &webview2_path);
+    std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--no-sandbox");
 }
 
 #[cfg(not(target_os = "windows"))]

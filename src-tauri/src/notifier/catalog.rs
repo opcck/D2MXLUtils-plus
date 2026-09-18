@@ -26,18 +26,8 @@ struct MatchingCacheFile {
 /// Mirrors `breakpoints::load_weapon_base_cache`'s pattern (schema-versioned
 /// JSON in the app data dir, `None` on any miss/mismatch so the caller
 /// falls back to a live rebuild).
-pub fn load_matching_cache(app: &AppHandle) -> Option<MatchingCache> {
-    let app_data = match app.path().app_data_dir() {
-        Ok(dir) => dir,
-        Err(e) => {
-            log_error(&format!(
-                "matching cache: failed to resolve app data directory: {}",
-                e
-            ));
-            return None;
-        }
-    };
-
+pub fn load_matching_cache(_app: &AppHandle) -> Option<MatchingCache> {
+    let app_data = crate::app_paths::get_app_dir();
     let path = app_data.join(MATCHING_CACHE_FILE);
     if !path.exists() {
         log_info(&format!("matching cache: no file at {}", path.display()));
@@ -77,16 +67,8 @@ pub fn load_matching_cache(app: &AppHandle) -> Option<MatchingCache> {
     }
 }
 
-pub fn save_matching_cache(app: &AppHandle, cache: &MatchingCache) -> Result<(), String> {
-    let app_data = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-
-    if !app_data.exists() {
-        std::fs::create_dir_all(&app_data)
-            .map_err(|e| format!("Failed to create app data directory: {}", e))?;
-    }
+pub fn save_matching_cache(_app: &AppHandle, cache: &MatchingCache) -> Result<(), String> {
+    let app_data = crate::app_paths::get_app_dir();
 
     let path = app_data.join(MATCHING_CACHE_FILE);
     let payload = MatchingCacheFile {

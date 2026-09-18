@@ -41,18 +41,8 @@ struct CacheFile {
     dumped_at: String,
 }
 
-pub fn load_from_cache(app: &AppHandle) -> Option<WeaponBaseCatalog> {
-    let app_data = match app.path().app_data_dir() {
-        Ok(dir) => dir,
-        Err(e) => {
-            log_error(&format!(
-                "weapon-bases cache: failed to resolve app data directory: {}",
-                e
-            ));
-            return None;
-        }
-    };
-
+pub fn load_from_cache(_app: &AppHandle) -> Option<WeaponBaseCatalog> {
+    let app_data = crate::app_paths::get_app_dir();
     let path = app_data.join(CACHE_FILE);
     if !path.exists() {
         log_info(&format!(
@@ -93,16 +83,8 @@ pub fn load_from_cache(app: &AppHandle) -> Option<WeaponBaseCatalog> {
     }
 }
 
-pub fn save_to_cache(app: &AppHandle, catalog: &WeaponBaseCatalog) -> Result<(), String> {
-    let app_data = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-
-    if !app_data.exists() {
-        fs::create_dir_all(&app_data)
-            .map_err(|e| format!("Failed to create app data directory: {}", e))?;
-    }
+pub fn save_to_cache(_app: &AppHandle, catalog: &WeaponBaseCatalog) -> Result<(), String> {
+    let app_data = crate::app_paths::get_app_dir();
 
     let path = app_data.join(CACHE_FILE);
     let payload = CacheFile {

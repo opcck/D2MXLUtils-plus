@@ -19,11 +19,15 @@ use crate::logger::{error as log_error, info as log_info};
 
 const SETTINGS_FILE: &str = "settings.json";
 
+fn get_settings_path() -> std::path::PathBuf {
+    crate::app_paths::get_app_dir().join(SETTINGS_FILE)
+}
+
 /// Load application settings from the store
 #[tauri::command]
 pub fn load_settings(app: AppHandle) -> Result<AppSettings, String> {
     let store = app
-        .store(SETTINGS_FILE)
+        .store(get_settings_path())
         .map_err(|e| format!("Failed to open settings store: {}", e))?;
 
     let Some(raw) = store.get("settings") else {
@@ -53,7 +57,7 @@ pub fn load_settings(app: AppHandle) -> Result<AppSettings, String> {
 #[tauri::command]
 pub fn save_settings(app: AppHandle, settings: AppSettings) -> Result<(), String> {
     let store = app
-        .store(SETTINGS_FILE)
+        .store(get_settings_path())
         .map_err(|e| format!("Failed to open settings store: {}", e))?;
 
     let value = serde_json::to_value(&settings)

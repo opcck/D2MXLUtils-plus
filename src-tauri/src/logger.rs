@@ -15,7 +15,6 @@ use chrono::Local;
 /// by `settings.json`, `profiles/`, and `items-cache.json`. Falls back to the
 /// directory next to the executable if `%APPDATA%` cannot be resolved.
 
-const APP_DIR_NAME: &str = "com.d2mxlutils.app";
 const LOG_FILE_NAME: &str = "d2mxlutils.log";
 const ROTATED_LOG_FILE_NAME: &str = "d2mxlutils.log.1";
 const MAX_LOG_BYTES: u64 = 5 * 1024 * 1024;
@@ -36,42 +35,10 @@ fn throttle_map() -> &'static Mutex<HashMap<(&'static str, u32), ThrottleEntry>>
     THROTTLE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-/// Windows: `%APPDATA%\com.d2mxlutils.app`. Linux: `$XDG_DATA_HOME` (or
-/// `~/.local/share` if unset) `/com.d2mxlutils.app` — matches Tauri's own
-/// `app_data_dir()` resolution for this bundle identifier, so the log lands
-/// next to `settings.json`/`profiles/`/`items-cache.json` rather than
-/// reinventing app-data resolution. This runs before Tauri's `AppHandle`
-/// exists (called from `main()`), so it can't just call `app_data_dir()`
-/// directly.
-#[cfg(target_os = "windows")]
-fn app_data_base_dir() -> Option<PathBuf> {
-    std::env::var_os("APPDATA").map(PathBuf::from)
-}
-
-#[cfg(target_os = "linux")]
-fn app_data_base_dir() -> Option<PathBuf> {
-    std::env::var_os("XDG_DATA_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share")))
-}
-
-#[cfg(not(any(target_os = "windows", target_os = "linux")))]
-fn app_data_base_dir() -> Option<PathBuf> {
-    None
-}
-
 fn get_log_path() -> PathBuf {
     LOG_PATH
         .get_or_init(|| {
-            let dir = app_data_base_dir()
-                .map(|p| p.join(APP_DIR_NAME))
-                .or_else(|| {
-                    std::env::current_exe()
-                        .ok()
-                        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-                })
-                .unwrap_or_else(|| PathBuf::from("."));
-            let _ = std::fs::create_dir_all(&dir);
+            let dir = crate::app_paths::get_app_dir();
             dir.join(LOG_FILE_NAME)
         })
         .clone()

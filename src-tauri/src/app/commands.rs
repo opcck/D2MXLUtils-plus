@@ -44,23 +44,22 @@ pub(crate) fn open_devtools(window: tauri::WebviewWindow) {
 /// on its next attach.
 #[tauri::command]
 pub(crate) fn refresh_game_data_caches(
-    app: AppHandle,
+    _app: AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<(), String> {
-    if let Ok(dir) = app.path().app_data_dir() {
-        for file in [
-            "matching-cache.json",
-            "items-cache.json",
-            "weapon-bases.json",
-        ] {
-            let path = dir.join(file);
-            if path.exists() {
-                if let Err(e) = std::fs::remove_file(&path) {
-                    log_error(&format!(
-                        "refresh_game_data_caches: failed to remove {}: {}",
-                        file, e
-                    ));
-                }
+    let dir = crate::app_paths::get_app_dir();
+    for file in [
+        "matching-cache.json",
+        "items-cache.json",
+        "weapon-bases.json",
+    ] {
+        let path = dir.join(file);
+        if path.exists() {
+            if let Err(e) = std::fs::remove_file(&path) {
+                log_error(&format!(
+                    "refresh_game_data_caches: failed to remove {}: {}",
+                    file, e
+                ));
             }
         }
     }
@@ -92,12 +91,9 @@ pub(crate) fn refresh_game_data_caches(
 }
 
 #[tauri::command]
-pub(crate) fn open_app_folder(app: AppHandle) -> Result<(), String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
-    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create app data dir: {}", e))?;
+pub(crate) fn open_app_folder(_app: AppHandle) -> Result<(), String> {
+    let dir = crate::app_paths::get_app_dir();
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create app config dir: {}", e))?;
     #[cfg(target_os = "windows")]
     let opener = "explorer";
     #[cfg(target_os = "linux")]
@@ -109,6 +105,13 @@ pub(crate) fn open_app_folder(app: AppHandle) -> Result<(), String> {
         .spawn()
         .map_err(|e| format!("Failed to open file manager: {}", e))?;
     Ok(())
+}
+
+#[tauri::command]
+pub(crate) fn get_app_config_dir() -> String {
+    crate::app_paths::get_app_dir()
+        .to_string_lossy()
+        .to_string()
 }
 
 #[tauri::command]

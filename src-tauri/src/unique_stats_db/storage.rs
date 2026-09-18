@@ -20,8 +20,8 @@ struct UniqueStatsDbFile {
     entries: Vec<UniqueStatsEntry>,
 }
 
-pub fn load_unique_stats_db(app: &AppHandle) -> Option<UniqueStatsDb> {
-    let app_data = app.path().app_data_dir().ok()?;
+pub fn load_unique_stats_db(_app: &AppHandle) -> Option<UniqueStatsDb> {
+    let app_data = crate::app_paths::get_app_dir();
     let path = app_data.join(DB_FILE);
     if !path.exists() {
         log_info(&format!("unique stats db: no file at {}", path.display()));

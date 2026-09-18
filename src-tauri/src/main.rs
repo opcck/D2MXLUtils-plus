@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app;
+pub mod app_paths;
 mod auto_belt;
 mod auto_pickup;
 mod auto_potion;
@@ -140,6 +141,10 @@ fn load_initial_filter_config(app: &AppHandle) -> Option<rules::FilterConfig> {
 }
 
 fn main() {
+    std::panic::set_hook(Box::new(|info| {
+        log_error(&format!("PANIC: {}", info));
+    }));
+
     app::prepare_environment();
 
     // Enable SeDebugPrivilege so OpenProcess has the same behavior as legacy tools.
@@ -156,26 +161,25 @@ fn main() {
 
             // First-run: if the settings file has never been written, drop a
             // ready-to-use Default profile and mark it active
-            if let Ok(dir) = app.handle().path().app_data_dir() {
-                let settings_path = dir.join("settings.json");
-                if !settings_path.exists() {
-                    match profiles::seed_default_profile(app.handle()) {
-                        Ok(name) => {
-                            let mut s =
-                                settings::load_settings(app.handle().clone()).unwrap_or_default();
-                            s.active_profile = Some(name);
-                            if let Err(e) = settings::save_settings(app.handle().clone(), s) {
-                                log_error(&format!(
-                                    "First-run seed: failed to persist active profile: {}",
-                                    e
-                                ));
-                            }
+            let dir = crate::app_paths::get_app_dir();
+            let settings_path = dir.join("settings.json");
+            if !settings_path.exists() {
+                match profiles::seed_default_profile(app.handle()) {
+                    Ok(name) => {
+                        let mut s =
+                            settings::load_settings(app.handle().clone()).unwrap_or_default();
+                        s.active_profile = Some(name);
+                        if let Err(e) = settings::save_settings(app.handle().clone(), s) {
+                            log_error(&format!(
+                                "First-run seed: failed to persist active profile: {}",
+                                e
+                            ));
                         }
-                        Err(e) => log_error(&format!(
-                            "First-run seed: failed to create Default profile: {}",
-                            e
-                        )),
                     }
+                    Err(e) => log_error(&format!(
+                        "First-run seed: failed to create Default profile: {}",
+                        e
+                    )),
                 }
             }
 
@@ -234,11 +238,10 @@ fn main() {
                 verbose_filter_logging.clone(),
             ));
 
-            if let Some(dir) = app.handle().path().app_data_dir().ok() {
-                if let Some(table) = breakpoints::load_speedcalc_cache(&dir) {
-                    if let Ok(mut guard) = speedcalc_table_for_cache.write() {
-                        *guard = Some(table);
-                    }
+            let dir = crate::app_paths::get_app_dir();
+            if let Some(table) = breakpoints::load_speedcalc_cache(&dir) {
+                if let Ok(mut guard) = speedcalc_table_for_cache.write() {
+                    *guard = Some(table);
                 }
             }
 
@@ -524,6 +527,7 @@ fn main() {
             app::open_app_folder,
             app::open_external_url,
             app::get_changelog,
+            app::get_app_config_dir,
             monster_radar::toggle_monster_radar,
             monster_radar::set_radar_show_normal,
             combat_tweaks::toggle_continuous_attack,

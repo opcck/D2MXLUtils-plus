@@ -35,13 +35,8 @@ pub struct ProfileInfo {
 }
 
 /// Get the profiles directory path
-fn get_profiles_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let app_data = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-
-    let profiles_dir = app_data.join("profiles");
+fn get_profiles_dir(_app: &AppHandle) -> Result<PathBuf, String> {
+    let profiles_dir = crate::app_paths::get_app_dir().join("profiles");
 
     if !profiles_dir.exists() {
         fs::create_dir_all(&profiles_dir)

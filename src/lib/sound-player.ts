@@ -11,7 +11,6 @@
  */
 
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-import { appDataDir } from '@tauri-apps/api/path';
 import { settingsStore, type SoundSlot } from '../stores/settings.svelte';
 
 let appDataDirPath: string | null = null;
@@ -43,7 +42,7 @@ const cache: Map<number, CacheEntry> = new Map();
 function getAppDataDir(): Promise<string> {
   if (appDataDirPath !== null) return Promise.resolve(appDataDirPath);
   if (!appDataDirPromise) {
-    appDataDirPromise = appDataDir().then((p) => {
+    appDataDirPromise = invoke<string>('get_app_config_dir').then((p) => {
       appDataDirPath = p.replace(/[\\/]+$/, '');
       return appDataDirPath;
     });

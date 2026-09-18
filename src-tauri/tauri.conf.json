@@ -13,7 +13,7 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/sounds/*"]
+        "scope": ["**"]
       }
     },
     "windows": [
