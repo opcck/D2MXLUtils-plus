@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.28.10 — 2026-09-19
+
+### Bug Fixes
+
+- Fix: 修复自动拾取pickup=2优先放入方块失效问题，支持方块CID 1204与字符串Base Code解析 (v1.28.10) (569fdbc)
+
 ## v1.28.9 — 2026-09-19
 
 ### Features
