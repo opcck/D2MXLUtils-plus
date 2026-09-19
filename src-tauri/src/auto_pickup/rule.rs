@@ -33,8 +33,8 @@ pub struct PickupRuleRaw {
     #[serde(rename = "id")]
     pub class_id: Option<u32>,
 
-    #[serde(rename = "base_code")]
-    pub base_code: Option<u32>,
+    #[serde(default, deserialize_with = "opt_base_code_flexible")]
+    pub base_code: Option<String>,
 
     #[serde(default, deserialize_with = "opt_bool_flexible")]
     pub match_name: Option<bool>,
@@ -55,6 +55,36 @@ pub struct PickupRuleRaw {
     pub socks: Option<usize>,
 
     pub pickup: Option<u8>,
+}
+
+fn opt_base_code_flexible<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let v: Option<toml::Value> = Option::deserialize(deserializer)?;
+    match v {
+        Some(toml::Value::String(s)) => {
+            let trimmed = s.trim().to_lowercase();
+            if trimmed.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(trimmed))
+            }
+        }
+        Some(toml::Value::Integer(i)) => {
+            let u = i as u32;
+            let bytes = u.to_le_bytes();
+            let s = String::from_utf8_lossy(&bytes)
+                .trim_matches(|c: char| c.is_whitespace() || c == '\0')
+                .to_lowercase();
+            if !s.is_empty() && s.chars().all(|c| c.is_ascii_graphic()) {
+                Ok(Some(s))
+            } else {
+                Ok(Some(format!("{:X}", u)))
+            }
+        }
+        _ => Ok(None),
+    }
 }
 
 fn opt_bool_flexible<'de, D>(deserializer: D) -> Result<Option<bool>, D::Error>
@@ -83,7 +113,7 @@ where
 #[derive(Debug, Clone)]
 pub struct CompiledPickupRule {
     pub class_id: Option<u32>,
-    pub base_code: Option<u32>,
+    pub base_code: Option<String>,
     pub match_name: bool,
     pub property: Option<String>,
     pub regex: Option<Regex>,
@@ -98,7 +128,8 @@ impl CompiledPickupRule {
     pub fn matches(
         &self,
         class_id: u32,
-        base_code: Option<u32>,
+        base_code_str: Option<&str>,
+        base_code_u32: Option<u32>,
         quality: u32,
         is_eth: bool,
         socks: usize,
@@ -111,12 +142,19 @@ impl CompiledPickupRule {
             }
         }
 
-        if let Some(bcode) = self.base_code {
-            if let Some(actual_bcode) = base_code {
-                if bcode != actual_bcode {
-                    return false;
-                }
+        if let Some(ref bcode) = self.base_code {
+            let matched = if let Some(actual_str) = base_code_str {
+                actual_str.eq_ignore_ascii_case(bcode)
+            } else if let Some(actual_u32) = base_code_u32 {
+                let bytes = actual_u32.to_le_bytes();
+                let actual_decoded = String::from_utf8_lossy(&bytes)
+                    .trim_matches(|c: char| c.is_whitespace() || c == '\0')
+                    .to_lowercase();
+                actual_decoded == *bcode
             } else {
+                false
+            };
+            if !matched {
                 return false;
             }
         }
@@ -238,4 +276,63 @@ pub fn parse_pickup_rules(text: &str) -> Result<Vec<CompiledPickupRule>, String>
     }
 
     Ok(compiled)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_rules_with_string_and_hex_base_code() {
+        let text = r#"
+            { base_code = "box", pickup = 2 },
+            { base_code = "bxa", pickup = 2 },
+            { base_code = 0x20786F62, pickup = 1 },
+            { id = 1204, pickup = 2 },
+        "#;
+        let rules = parse_pickup_rules(text).expect("should parse rules");
+        assert_eq!(rules.len(), 4);
+        assert_eq!(rules[0].base_code.as_deref(), Some("box"));
+        assert_eq!(rules[0].pickup, PickupAction::Cube);
+        assert_eq!(rules[1].base_code.as_deref(), Some("bxa"));
+        assert_eq!(rules[1].pickup, PickupAction::Cube);
+        assert_eq!(rules[2].base_code.as_deref(), Some("box"));
+        assert_eq!(rules[2].pickup, PickupAction::Inventory);
+        assert_eq!(rules[3].class_id, Some(1204));
+        assert_eq!(rules[3].pickup, PickupAction::Cube);
+    }
+
+    #[test]
+    fn test_matches_base_code_string() {
+        let rule = CompiledPickupRule {
+            class_id: None,
+            base_code: Some("box".to_string()),
+            match_name: false,
+            property: None,
+            regex: None,
+            name_regex: None,
+            quality: None,
+            eth: None,
+            socks: None,
+            pickup: PickupAction::Cube,
+        };
+
+        // Match with base_code_str Some("box")
+        assert!(rule.matches(1204, Some("box"), None, 7, false, 0, "Horadric Cube", ""));
+        // Match case-insensitively
+        assert!(rule.matches(1204, Some("BOX"), None, 7, false, 0, "Horadric Cube", ""));
+        // Match with base_code_u32 0x20786F62 (b"box ")
+        assert!(rule.matches(
+            1204,
+            None,
+            Some(0x20786F62),
+            7,
+            false,
+            0,
+            "Horadric Cube",
+            ""
+        ));
+        // Mismatch
+        assert!(!rule.matches(1204, Some("bxa"), None, 7, false, 0, "Horadric Cube", ""));
+    }
 }

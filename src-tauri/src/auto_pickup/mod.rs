@@ -116,7 +116,7 @@ pub const DEFAULT_PICKUP_RULES: &str = r#"# ====================================
 { match_name = 1, quality = "normal", regex = "全效活力药水|活力药水", pickup = 1 },
 
 # --- 特殊基底与杂项 ---
-{ base_code = 0x20786F62, pickup = 1 }, # 赫拉迪克方块基底
+{ base_code = "box", pickup = 1 }, # 赫拉迪克方块基底
 
 # 特定剧情/任务掉落物品排除 (不捡)
 { match_name = 1, prop = "萨卡兰姆的耳朵", pickup = 0 },
@@ -203,13 +203,20 @@ impl AutoPickupState {
 
             if cursor_item != 0 {
                 // Item is now on the cursor! Immediately dispatch packet 0x2A
-                let cube_packet = packet::build_item_to_cube_packet(item_uid, cube_uid);
+                let cursor_unit_id = match ctx
+                    .process
+                    .read_memory::<u32>(cursor_item as usize + unit::UNIT_ID)
+                {
+                    Ok(id) if id != 0 => id,
+                    _ => item_uid,
+                };
+                let cube_packet = packet::build_item_to_cube_packet(cursor_unit_id, cube_uid);
                 if let Ok(inj) = injector.lock() {
                     match inj.send_packet(&ctx.process, &cube_packet) {
                         Ok(_) => {
                             log_info(&format!(
                                 "AutoPickup: moved cursor item 0x{:X} into cube 0x{:X}",
-                                item_uid, cube_uid
+                                cursor_unit_id, cube_uid
                             ));
                         }
                         Err(e) => {
@@ -224,6 +231,10 @@ impl AutoPickupState {
                 return;
             } else if start.elapsed() > Duration::from_millis(1500) {
                 // Timeout waiting for item on cursor
+                log_info(&format!(
+                    "AutoPickup: timed out waiting for item 0x{:X} on cursor for cube",
+                    item_uid
+                ));
                 *self.pending_cube_item.lock().unwrap() = None;
             } else {
                 // Still waiting for server to place item on cursor
@@ -336,7 +347,8 @@ impl AutoPickupState {
                 .process
                 .read_memory::<u32>(p_unit as usize + unit::CLASS)
                 .unwrap_or(0);
-            let base_code = capacity::read_item_code(ctx, class_id);
+            let base_code_str = crate::inspector::read_item_code_string(ctx, class_id);
+            let base_code_u32 = capacity::read_item_code(ctx, class_id);
 
             let p_unit_data = match ctx
                 .process
@@ -372,7 +384,16 @@ impl AutoPickupState {
 
             // Reverse match (last match wins)
             let matched_action = rules_lock.iter().rev().find_map(|rule| {
-                if rule.matches(class_id, base_code, quality, is_eth, sockets, name, props) {
+                if rule.matches(
+                    class_id,
+                    base_code_str.as_deref(),
+                    base_code_u32,
+                    quality,
+                    is_eth,
+                    sockets,
+                    name,
+                    props,
+                ) {
                     Some(rule.pickup)
                 } else {
                     None
@@ -415,9 +436,9 @@ impl AutoPickupState {
 
                 PickupAction::Cube => {
                     let cube_uid = capacity::find_horadric_cube(ctx);
-                    let can_cube = cube_uid.is_some()
-                        && capacity::check_cube_has_space(ctx, width, height)
-                            == capacity::ContainerSpace::Available;
+                    let cube_space = capacity::check_cube_has_space(ctx, width, height);
+                    let can_cube =
+                        cube_uid.is_some() && cube_space == capacity::ContainerSpace::Available;
 
                     if can_cube {
                         // Phase 1: pick up to cursor
@@ -425,8 +446,9 @@ impl AutoPickupState {
                         if let Ok(inj) = injector.lock() {
                             if inj.send_packet(&ctx.process, &packet).is_ok() {
                                 log_info(&format!(
-                                    "AutoPickup: dispatched Cube pickup phase-1 for unit 0x{:X}",
-                                    unit_id
+                                    "AutoPickup: dispatched Cube pickup phase-1 for unit 0x{:X} into cube 0x{:X}",
+                                    unit_id,
+                                    cube_uid.unwrap()
                                 ));
                                 self.register_in_flight(unit_id);
                                 *self.pending_cube_item.lock().unwrap() =
@@ -440,8 +462,8 @@ impl AutoPickupState {
                         if let Ok(inj) = injector.lock() {
                             if inj.send_packet(&ctx.process, &packet).is_ok() {
                                 log_info(&format!(
-                                    "AutoPickup: cube unavailable/full, picked to inventory 0x{:X}",
-                                    unit_id
+                                    "AutoPickup: cube {:?} (cube_uid={:?}), fell back to inventory for unit 0x{:X}",
+                                    cube_space, cube_uid, unit_id
                                 ));
                                 self.register_in_flight(unit_id);
                                 return;

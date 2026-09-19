@@ -757,6 +757,11 @@
                   <code>unique</code>）
                 </li>
                 <li><code>id = 603</code>：匹配具体的物品 Class ID（数字）</li>
+                <li>
+                  <code>base_code = "box"</code>：匹配底材代码（如 <code>"box"</code>、<code
+                    >"bxa"</code
+                  >，在物品悬浮窗中显示）
+                </li>
                 <li><code>socks = 4</code>：匹配开孔数量</li>
                 <li><code>eth = true / false</code>：匹配是否为无形装备</li>
               </ul>

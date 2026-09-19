@@ -73,6 +73,29 @@ pub fn check_belt_has_empty_slot(ctx: &D2Context) -> bool {
     false
 }
 
+/// Checks whether an item's class ID represents the Horadric Cube.
+/// Handles Median XL specific class ID (1204), string code ("box"), and 4-byte code.
+pub fn is_horadric_cube(ctx: &D2Context, class_id: u32) -> bool {
+    // 1. Median XL Horadric Cube class_id is 1204
+    if class_id == 1204 {
+        return true;
+    }
+    // 2. Base code string from Items.txt (checks 0x80 and 0x74)
+    if let Some(s) = crate::inspector::read_item_code_string(ctx, class_id) {
+        if s.eq_ignore_ascii_case("box") {
+            return true;
+        }
+    }
+    // 3. Raw 4-byte code from Items.txt (little-endian byte prefix)
+    if let Some(code) = read_item_code(ctx, class_id) {
+        let b = code.to_le_bytes();
+        if &b[..3] == b"box" {
+            return true;
+        }
+    }
+    false
+}
+
 /// Finds the Horadric Cube unit ID in the player's inventory
 pub fn find_horadric_cube(ctx: &D2Context) -> Option<u32> {
     let p_player = match ctx
@@ -115,23 +138,19 @@ pub fn find_horadric_cube(ctx: &D2Context) -> Option<u32> {
             .read_memory::<u8>(p_unit_data + item_data::INV_PAGE)
             .unwrap_or(255);
 
-        // Cube itself must be in inventory (page 0)
-        if inv_page == 0 {
-            let class_id = ctx
-                .process
-                .read_memory::<u32>(p_item as usize + unit::CLASS)
-                .unwrap_or(0);
-            let uid = ctx
-                .process
-                .read_memory::<u32>(p_item as usize + unit::UNIT_ID)
-                .unwrap_or(0);
+        let class_id = ctx
+            .process
+            .read_memory::<u32>(p_item as usize + unit::CLASS)
+            .unwrap_or(0);
+        let uid = ctx
+            .process
+            .read_memory::<u32>(p_item as usize + unit::UNIT_ID)
+            .unwrap_or(0);
 
-            // Read base_code from Items.txt
-            if let Some(code) = read_item_code(ctx, class_id) {
-                // 0x20786F62 is little-endian b"box "
-                if code == 0x20786F62 || &code.to_le_bytes() == b"box " {
-                    return Some(uid);
-                }
+        // Cube must be in inventory (page 0) or stash (page 4)
+        if (inv_page == 0 || inv_page == 4 || inv_page == 255) && is_horadric_cube(ctx, class_id) {
+            if uid != 0 {
+                return Some(uid);
             }
         }
 
@@ -161,14 +180,20 @@ pub fn read_item_code(ctx: &D2Context, class_id: u32) -> Option<u32> {
         .read_memory::<u32>(ctx.d2_common + crate::offsets::d2common::ITEMS_TXT_COUNT)
         .unwrap_or(0);
 
-    if class_id == 0 || class_id >= items_count {
+    if items_count > 0 && class_id >= items_count {
         return None;
     }
 
     let record_addr = items_base + (class_id as usize) * items_txt::RECORD_SIZE;
-    ctx.process
+    if let Ok(code) = ctx
+        .process
         .read_memory::<u32>(record_addr + items_txt::CODE)
-        .ok()
+    {
+        if code != 0 {
+            return Some(code);
+        }
+    }
+    ctx.process.read_memory::<u32>(record_addr + 0x74).ok()
 }
 
 /// Reads inventory width & height (in grid cells) for a given class ID
@@ -185,7 +210,7 @@ pub fn read_item_dimensions(ctx: &D2Context, class_id: u32) -> (usize, usize) {
         .read_memory::<u32>(ctx.d2_common + crate::offsets::d2common::ITEMS_TXT_COUNT)
         .unwrap_or(0);
 
-    if class_id == 0 || class_id >= items_count {
+    if items_count > 0 && class_id >= items_count {
         return (1, 1);
     }
 
@@ -336,12 +361,8 @@ pub fn check_cube_has_space(ctx: &D2Context, width: usize, height: usize) -> Con
             .read_memory::<u32>(p_item as usize + unit::CLASS)
             .unwrap_or(0);
 
-        if inv_page == 0 {
-            if let Some(code) = read_item_code(ctx, class_id) {
-                if code == 0x20786F62 || &code.to_le_bytes() == b"box " {
-                    has_cube = true;
-                }
-            }
+        if is_horadric_cube(ctx, class_id) {
+            has_cube = true;
         } else if inv_page == 3 {
             // Page 3 = D2ItemInvPage::Cube
             let (item_w, item_h) = read_item_dimensions(ctx, class_id);
