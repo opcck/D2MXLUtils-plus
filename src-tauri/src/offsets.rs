@@ -434,7 +434,7 @@ pub mod body_loc {
 pub mod items_txt {
     pub const RECORD_SIZE: usize = 0x1A8;
 
-    pub const CODE: usize = 0x74; // 4-char ASCII item code ("hpo ", "wms ", etc.)
+    pub const CODE: usize = 0x80; // 4-char ASCII item code ("hpo ", "wms ", etc.) (confirmed in D2Common.dll GetBaseCode at 0x23290)
     pub const MISC: usize = 0x84; // dword
     pub const DESC_STR_ID: usize = 0xB6; // word
     pub const WCLASS: usize = 0xC0; // u32 (4-char weapon class code: "1hs", "bow", "stf", etc.)

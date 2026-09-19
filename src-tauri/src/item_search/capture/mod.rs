@@ -1082,10 +1082,14 @@ pub(crate) fn read_hovered_item_detail(
             .unwrap_or_default();
         let name = display_name_from_raw_item_name(&raw).unwrap_or(raw);
 
+        let base_code =
+            crate::inspector::read_item_code_string(&shared.ctx, class_id).unwrap_or_default();
+
         return Ok(Some(crate::inspector::ItemInspectData {
             name,
             class_id,
             unit_id,
+            base_code,
             quality,
             sockets,
             is_ethereal,

@@ -29,6 +29,7 @@ pub struct ItemInspectData {
     pub name: String,
     pub class_id: u32,
     pub unit_id: u32,
+    pub base_code: String,
     pub quality: String,
     pub sockets: u32,
     pub is_ethereal: bool,
@@ -234,12 +235,52 @@ pub fn sample_hovered_ground_item(
         format!("Item #{class_id}")
     };
 
+    let base_code = read_item_code_string(ctx, class_id).unwrap_or_default();
+
     Some(ItemInspectData {
         name,
         class_id,
         unit_id,
+        base_code,
         quality,
         sockets,
         is_ethereal,
     })
+}
+
+pub fn read_item_code_string(ctx: &D2Context, class_id: u32) -> Option<String> {
+    let items_base = match ctx
+        .process
+        .read_memory::<u32>(ctx.d2_common + offsets::d2common::ITEMS_TXT)
+    {
+        Ok(p) if p != 0 => p as usize,
+        _ => return None,
+    };
+    let items_count = ctx
+        .process
+        .read_memory::<u32>(ctx.d2_common + offsets::d2common::ITEMS_TXT_COUNT)
+        .unwrap_or(0);
+
+    if items_count > 0 && class_id >= items_count {
+        return None;
+    }
+
+    let record_addr = items_base + (class_id as usize) * offsets::items_txt::RECORD_SIZE;
+
+    let try_decode = |offset: usize| -> Option<String> {
+        let bytes = ctx
+            .process
+            .read_memory::<[u8; 4]>(record_addr + offset)
+            .ok()?;
+        let s = String::from_utf8_lossy(&bytes)
+            .trim_matches(|c: char| c.is_whitespace() || c == '\0')
+            .to_string();
+        if !s.is_empty() && s.chars().all(|c| c.is_ascii_graphic()) {
+            Some(s)
+        } else {
+            None
+        }
+    };
+
+    try_decode(offsets::items_txt::CODE).or_else(|| try_decode(0x74))
 }

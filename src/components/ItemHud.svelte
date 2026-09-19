@@ -8,6 +8,7 @@
     name: string;
     class_id: number;
     unit_id: number;
+    base_code: string;
     quality: string;
     sockets: number;
     is_ethereal: boolean;
@@ -62,8 +63,9 @@
       </div>
 
       <div class="item-meta">
-        <span class="meta-tag">UID: 0x{item.unit_id.toString(16).toUpperCase()}</span>
+        <span class="meta-tag code-tag">[{item.base_code || '---'}]</span>
         <span class="meta-tag">CID: {item.class_id}</span>
+        <span class="meta-tag">UID: 0x{item.unit_id.toString(16).toUpperCase()}</span>
         {#if item.sockets > 0}
           <span class="meta-tag socket-tag">{item.sockets}孔</span>
         {/if}
@@ -80,8 +82,9 @@
       </div>
       <div class="standby-hint">悬停地面/背包物品查看</div>
       <div class="item-meta standby-meta">
-        <span class="meta-tag">UID: --</span>
+        <span class="meta-tag">Code: --</span>
         <span class="meta-tag">CID: --</span>
+        <span class="meta-tag">UID: --</span>
         <span class="meta-tag">品质: --</span>
       </div>
     </div>
@@ -91,8 +94,8 @@
 <style>
   .item-hud-widget {
     position: absolute;
-    min-width: 210px;
-    max-width: 260px;
+    min-width: 220px;
+    max-width: 290px;
     background: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -196,6 +199,13 @@
   .quality-magic .quality-badge {
     background: rgba(96, 165, 250, 0.25);
     color: #60a5fa;
+  }
+
+  .code-tag {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.2);
+    font-weight: 700;
+    border: 1px solid rgba(56, 189, 248, 0.35);
   }
 
   .socket-tag {
