@@ -3,13 +3,14 @@
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { RulesEditor, type ValidationResult } from '../editor';
-  import { ProfileSelector, Toggle } from '../components';
+  import { ProfileSelector, Toggle, FilterRuleGeneratorModal } from '../components';
   import { settingsStore } from '../stores';
 
   type SaveState = 'saved' | 'unsaved' | 'invalid' | 'saving' | 'error';
 
   let dslText = $state('');
   let selectedProfile = $state(settingsStore.settings.activeProfile || '');
+  let generatorOpen = $state(false);
   let validationStatus = $state<'idle' | 'valid' | 'error'>('idle');
   let errorCount = $state(0);
   let ruleCount = $state(0);
@@ -209,6 +210,14 @@
       [selectedProfile]: lines,
     });
   }
+
+  function handleRuleInsert(rule: string, mode: 'cursor' | 'append') {
+    if (mode === 'cursor') {
+      rulesEditorRef?.insertTextAtCursor(rule);
+    } else {
+      rulesEditorRef?.appendRule(rule);
+    }
+  }
 </script>
 
 <section class="loot-filter-tab">
@@ -269,6 +278,15 @@
           {/if}
         </span>
       {/if}
+
+      <button
+        type="button"
+        class="generator-btn"
+        onclick={() => (generatorOpen = true)}
+        title="打开掉落过滤规则可视化生成器"
+      >
+        🛠️ 规则生成器
+      </button>
 
       <ProfileSelector
         bind:selectedProfile
@@ -468,6 +486,8 @@
       </div>
     </details>
   </div>
+
+  <FilterRuleGeneratorModal bind:open={generatorOpen} oninsert={handleRuleInsert} />
 </section>
 
 <style>
@@ -499,6 +519,27 @@
     display: flex;
     align-items: center;
     gap: var(--space-2, 8px);
+  }
+
+  .generator-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: color-mix(in srgb, var(--accent-primary, #c7b377) 14%, transparent);
+    border: 1px solid var(--accent-primary, #c7b377);
+    border-radius: var(--radius-sm, 4px);
+    color: var(--accent-primary, #c7b377);
+    font-size: var(--text-sm, 13px);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .generator-btn:hover {
+    background: var(--accent-primary, #c7b377);
+    color: #1a1a1f;
   }
 
   .show-matches-toggle {

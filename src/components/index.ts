@@ -20,3 +20,4 @@ export { default as DpsMeter } from './DpsMeter.svelte';
 export { default as ItemSearchOverlay } from './ItemSearchOverlay.svelte';
 export { default as MonsterHud } from './MonsterHud.svelte';
 export { default as ItemHud } from './ItemHud.svelte';
+export { default as FilterRuleGeneratorModal } from './FilterRuleGeneratorModal.svelte';

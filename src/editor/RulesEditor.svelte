@@ -302,6 +302,39 @@
   export function getContent(): string {
     return view?.state.doc.toString() ?? value;
   }
+
+  /**
+   * 在当前光标处插入文本并自动换行，保持编辑器焦点
+   */
+  export function insertTextAtCursor(text: string) {
+    if (!view) return;
+    const { from, to } = view.state.selection.main;
+    const toInsert = text.endsWith('\n') ? text : text + '\n';
+    view.dispatch({
+      changes: { from, to, insert: toInsert },
+      selection: { anchor: from + toInsert.length },
+      scrollIntoView: true,
+    });
+    view.focus();
+  }
+
+  /**
+   * 在文档末尾追加一条规则
+   */
+  export function appendRule(rule: string) {
+    if (!view) return;
+    const doc = view.state.doc;
+    const docLength = doc.length;
+    const text = doc.toString();
+    const needsNewline = docLength > 0 && !text.endsWith('\n');
+    const toInsert = (needsNewline ? '\n' : '') + rule + '\n';
+    view.dispatch({
+      changes: { from: docLength, insert: toInsert },
+      selection: { anchor: docLength + toInsert.length },
+      scrollIntoView: true,
+    });
+    view.focus();
+  }
 </script>
 
 <div bind:this={container} class="rules-editor {className}"></div>
